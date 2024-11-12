@@ -1,5 +1,3 @@
-
-
 import 'package:flutter/material.dart';
 import 'package:graduation_project/ui/Admin/admin_home.dart';
 import 'package:graduation_project/ui/Home/home_page.dart';
@@ -40,7 +38,7 @@ class Body extends StatelessWidget {
             onChanged: (value){},
           ),
           SizedBox(height: size.height*0.03,),
-          RoundedButton(text: "LOGIN", press: (){Navigator.push(context,MaterialPageRoute(builder: (context) {return AdminHomePage();},),);}, color: Colors.purple.shade700, textColor: Colors.white),
+          RoundedButton(text: "LOGIN", press: (){Navigator.push(context,MaterialPageRoute(builder: (context) {return HomePage();},),);}, color: Colors.purple.shade700, textColor: Colors.white),
           AlreadyHaveAnAccountCheck(press: (){Navigator.push(context,MaterialPageRoute(builder: (context) {return SignupPage();},),);},
           ),
         ],

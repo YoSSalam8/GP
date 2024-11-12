@@ -66,6 +66,10 @@ class _TodayScreenState extends State<TodayScreen> {
     screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text("Home Page"),
+        backgroundColor: Colors.purple.shade500,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -194,33 +198,48 @@ class _TodayScreenState extends State<TodayScreen> {
               margin: const EdgeInsets.only(top: 24, bottom: 12),
               child: Builder(
                 builder: (context) {
-                  final GlobalKey<SlideActionState> key = GlobalKey<SlideActionState>();
-                  return SlideAction(
-                    text: checkIn == "--/--" ? "Slide To Check In" : "Slide To Check Out",
+                  final GlobalKey<SlideActionState> checkInKey = GlobalKey<SlideActionState>();
+                  final GlobalKey<SlideActionState> checkOutKey = GlobalKey<SlideActionState>();
+
+                  return checkIn == "--/--"
+                      ? SlideAction(
+                    text: "Slide To Check In",
                     textStyle: TextStyle(
                       color: Colors.black45,
                       fontSize: screenWidth / 20,
                     ),
                     outerColor: Colors.white,
-                    innerColor: Colors.purple.shade500,
-                    key: key,
+                    innerColor: Colors.green,
+                    key: checkInKey,
                     onSubmit: () {
                       setState(() {
-                        if (checkIn == '--/--' && checkOut == '--/--') {
-                          checkIn = DateFormat('hh:mm').format(DateTime.now());
-                          _getLocation(); // Get location on check-in
-                        } else if (checkIn != '--/--' && checkOut == '--/--') {
-                          checkOut = DateFormat('hh:mm').format(DateTime.now());
-
-                          // Add check-in and check-out time with the date to AttendanceData
-                          AttendanceData().addRecord(
-                            DateFormat('dd MMMM yyyy').format(DateTime.now()),
-                            checkIn,
-                            checkOut,
-                          );
-                        }
+                        checkIn = DateFormat('hh:mm').format(DateTime.now());
+                        _getLocation(); // Get location on check-in
                       });
-                      key.currentState!.reset();
+                      checkInKey.currentState!.reset();
+                    },
+                  )
+                      : SlideAction(
+                    text: "Slide To Check Out",
+                    textStyle: TextStyle(
+                      color: Colors.black45,
+                      fontSize: screenWidth / 20,
+                    ),
+                    outerColor: Colors.white,
+                    innerColor: Colors.red,
+                    key: checkOutKey,
+                    onSubmit: () {
+                      setState(() {
+                        checkOut = DateFormat('hh:mm').format(DateTime.now());
+
+                        // Add check-in and check-out time with the date to AttendanceData
+                        AttendanceData().addRecord(
+                          DateFormat('dd MMMM yyyy').format(DateTime.now()),
+                          checkIn,
+                          checkOut,
+                        );
+                      });
+                      checkOutKey.currentState!.reset();
                     },
                   );
                 },

@@ -66,6 +66,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
     screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
+      appBar: AppBar(
+      title: const Text("Employee Attendence"),
+      backgroundColor: Colors.purple.shade500,
+    ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(

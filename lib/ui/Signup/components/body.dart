@@ -26,6 +26,7 @@ class Body extends StatelessWidget {
           RoundedInputField(hintText: "Your Email", onChanged: (value) {},),
           RoundedPasswordField(onChanged: (value){}),
           RoundedPasswordField(onChanged: (value){}),
+          RoundedInputField(hintText: "Access Code", onChanged: (value) {},),
           RoundedButton(text:"SIGNUP", press: (){}, color: Colors.purple.shade500, textColor: Colors.white),
           SizedBox(height: size.height*0.03,),
           AlreadyHaveAnAccountCheck(login: false,press:(){Navigator.push(context, MaterialPageRoute(builder: (context){return Login();},),);} ,),

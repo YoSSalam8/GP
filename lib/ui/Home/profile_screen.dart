@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:intl/intl.dart';
 import 'model/user.dart'; // Importing the User class
 
 class ProfileScreen extends StatefulWidget {
@@ -15,11 +14,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   double screenHeight = 0;
   double screenWidth = 0;
   Color primary = Colors.purple.shade500;
-  String birth = "Date of birth";
 
-  TextEditingController firstNameController = TextEditingController();
-  TextEditingController lastNameController = TextEditingController();
-  TextEditingController addressController = TextEditingController();
+  TextEditingController emailController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
 
   void pickUploadProfilePic() async {
     final image = await ImagePicker().pickImage(
@@ -41,6 +38,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     screenHeight = MediaQuery.of(context).size.height;
     screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
+      appBar: AppBar(
+        title: const Text("Edit Profile"),
+        backgroundColor: Colors.purple.shade500,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -55,7 +56,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 width: 120,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(70),
                   color: primary,
                 ),
                 child: Center(
@@ -86,85 +87,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            User.canEdit
-                ? textField("First Name", "First name", firstNameController)
-                : field("First Name", User.firstName),
-            User.canEdit
-                ? textField("Last Name", "Last name", lastNameController)
-                : field("Last Name", User.lastName),
-            User.canEdit
-                ? GestureDetector(
+            textField("Email", "Enter your email", emailController),
+            textField("Password", "Enter your password", passwordController),
+            textField("Password", "Enter your password", passwordController),
+            GestureDetector(
               onTap: () {
-                showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now(),
-                  firstDate: DateTime(1950),
-                  lastDate: DateTime.now(),
-                  builder: (context, child) {
-                    return Theme(
-                      data: Theme.of(context).copyWith(
-                        colorScheme: ColorScheme.light(
-                          primary: primary,
-                          secondary: primary,
-                          onSecondary: Colors.white,
-                        ),
-                        textButtonTheme: TextButtonThemeData(
-                          style: TextButton.styleFrom(
-                            foregroundColor: primary,
-                          ),
-                        ),
-                        textTheme: const TextTheme(
-                          headlineMedium: TextStyle(
-                            fontFamily: "NexaBold",
-                          ),
-                          labelSmall: TextStyle(
-                            fontFamily: "NexaBold",
-                          ),
-                          labelLarge: TextStyle(
-                            fontFamily: "NexaBold",
-                          ),
-                        ),
-                      ),
-                      child: child!,
-                    );
-                  },
-                ).then((value) {
-                  if (value != null) {
-                    setState(() {
-                      birth = DateFormat("MM/dd/yyyy").format(value);
-                    });
-                  }
-                });
-              },
-              child: field("Date of Birth", birth),
-            )
-                : field("Date of Birth", User.birthDate),
-            User.canEdit
-                ? textField("Address", "Address", addressController)
-                : field("Address", User.address),
-            User.canEdit
-                ? GestureDetector(
-              onTap: () {
-                String firstName = firstNameController.text;
-                String lastName = lastNameController.text;
-                String birthDate = birth;
-                String address = addressController.text;
+                String email = emailController.text;
+                String password = passwordController.text;
 
-                if (firstName.isEmpty) {
-                  showSnackBar("Please enter your first name!");
-                } else if (lastName.isEmpty) {
-                  showSnackBar("Please enter your last name!");
-                } else if (birthDate == "Date of birth") {
-                  showSnackBar("Please enter your birth date!");
-                } else if (address.isEmpty) {
-                  showSnackBar("Please enter your address!");
+                if (email.isEmpty) {
+                  showSnackBar("Please enter your email!");
+                } else if (password.isEmpty) {
+                  showSnackBar("Please enter your password!");
                 } else {
                   setState(() {
-                    User.canEdit = false;
-                    User.firstName = firstName;
-                    User.lastName = lastName;
-                    User.birthDate = birthDate;
-                    User.address = address;
+                    User.email = email;
+                    User.password = password;
                   });
                   showSnackBar("Profile updated successfully!");
                 }
@@ -188,51 +126,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
               ),
-            )
-                : const SizedBox(),
+            ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget field(String title, String text) {
-    return Column(
-      children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontFamily: "NexaBold",
-              color: Colors.black87,
-            ),
-          ),
-        ),
-        Container(
-          height: kToolbarHeight,
-          width: screenWidth,
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.only(left: 11),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(
-              color: Colors.black54,
-            ),
-          ),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              text,
-              style: const TextStyle(
-                color: Colors.black54,
-                fontFamily: "NexaBold",
-                fontSize: 16,
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 
@@ -282,9 +179,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
-        content: Text(
-          text,
-        ),
+        content: Text(text),
       ),
     );
   }
