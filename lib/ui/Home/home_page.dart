@@ -25,8 +25,8 @@ class _HomePageState extends State<HomePage> {
     Icons.home,
     Icons.calendar_month,
     Icons.person,
-    Icons.account_circle, // Add profile icon here
-    Icons.logout, // Add logout icon here
+    Icons.account_circle, // Profile icon
+    Icons.logout, // Logout icon
   ];
   int currentIndex = 0;
 
@@ -64,13 +64,13 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
+                const Icon(
                   Icons.logout,
                   size: 50,
                   color: Colors.redAccent,
                 ),
                 const SizedBox(height: 20),
-                Text(
+                const Text(
                   "Confirm Logout",
                   style: TextStyle(
                     fontSize: 22,
@@ -146,16 +146,12 @@ class _HomePageState extends State<HomePage> {
           TodayScreen(),
           CalendarScreen(),
           EmployeeProfileScreen(),
-          ProfileScreen(), // Add the new screen here
+          ProfileScreen(), // Profile screen
         ],
       ),
       bottomNavigationBar: Container(
         height: 70,
-        margin: const EdgeInsets.only(
-          left: 12,
-          right: 12,
-          bottom: 24,
-        ),
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.all(Radius.circular(40)),
@@ -164,7 +160,7 @@ class _HomePageState extends State<HomePage> {
               color: Colors.black26,
               blurRadius: 10,
               offset: Offset(2, 2),
-            )
+            ),
           ],
         ),
         child: ClipRRect(
@@ -173,53 +169,46 @@ class _HomePageState extends State<HomePage> {
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              for (int i = 0; i < navigationIcons.length; i++) ...<Expanded>{
+              for (int i = 0; i < navigationIcons.length; i++)
                 Expanded(
                   child: GestureDetector(
                     onTap: () {
                       setState(() {
                         if (i == navigationIcons.length - 1) {
-                          // If the logout icon is tapped
-                          _showLogoutDialog();
+                          _showLogoutDialog(); // Show logout dialog
                         } else {
                           currentIndex = i; // Switch to the selected tab
                         }
                       });
                     },
                     child: Container(
-                      height: screenHeight,
-                      width: screenWidth,
                       color: Colors.white,
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              navigationIcons[i],
-                              color: i == currentIndex
-                                  ? Colors.purple.shade700
-                                  : Colors.black54,
-                              size: i == currentIndex ? 40 : 30,
-                            ),
-                            i == currentIndex && i != navigationIcons.length - 1
-                                ? Container(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            navigationIcons[i],
+                            color: i == currentIndex
+                                ? const Color(0xFF608BC1)
+                                : Colors.black54,
+                            size: i == currentIndex ? 40 : 30,
+                          ),
+                          if (i == currentIndex && i != navigationIcons.length - 1)
+                            Container(
                               margin: const EdgeInsets.only(top: 6),
                               height: 3,
                               width: 22,
                               decoration: BoxDecoration(
-                                borderRadius: const BorderRadius.all(
-                                    Radius.circular(40)),
-                                color: Colors.purple.shade700,
+                                borderRadius:
+                                const BorderRadius.all(Radius.circular(40)),
+                                color: const Color(0xFF608BC1),
                               ),
-                            )
-                                : const SizedBox(),
-                          ],
-                        ),
+                            ),
+                        ],
                       ),
                     ),
                   ),
-                )
-              }
+                ),
             ],
           ),
         ),
