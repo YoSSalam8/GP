@@ -53,7 +53,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: screenWidth / 18,
-                color: primaryColor,
+                color: accentColor,
               ),
             ),
             const SizedBox(height: 20),
@@ -76,7 +76,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: screenWidth / 18,
-              color: primaryColor,
+              color: accentColor,
             ),
           ),
         ),
@@ -114,7 +114,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: screenWidth / 18,
-                color: primaryColor,
+                color: accentColor,
               ),
             ),
           ),
@@ -145,7 +145,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       margin: EdgeInsets.only(top: index > 0 ? 12 : 0, left: 6, right: 6),
       height: 150,
       decoration: BoxDecoration(
-        color: cardColor,
+        color: Colors.white,
         boxShadow: const [
           BoxShadow(
             color: Colors.black26,

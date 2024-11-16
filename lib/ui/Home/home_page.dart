@@ -4,6 +4,7 @@ import 'package:graduation_project/ui/Home/profile_screen.dart';
 import 'package:graduation_project/ui/Home/services/location_service.dart';
 import 'package:graduation_project/ui/Home/today_screen.dart';
 import 'package:graduation_project/ui/Home/employee_profile_screen.dart'; // Import the Employee Profile Screen
+import 'package:graduation_project/ui/Home/vacation_request_screen.dart'; // Import the new page
 import 'package:graduation_project/ui/Login/login_page.dart';
 
 import 'model/user.dart';
@@ -22,10 +23,11 @@ class _HomePageState extends State<HomePage> {
   String id = '';
 
   List<IconData> navigationIcons = [
-    Icons.home,
-    Icons.calendar_month,
-    Icons.person,
-    Icons.account_circle, // Profile icon
+    Icons.home, // Today screen
+    Icons.calendar_month, // Calendar screen
+    Icons.person, // Employee Profile screen
+    Icons.account_circle, // Profile screen
+    Icons.request_page, // Vacation request screen
     Icons.logout, // Logout icon
   ];
   int currentIndex = 0;
@@ -143,10 +145,11 @@ class _HomePageState extends State<HomePage> {
       body: IndexedStack(
         index: currentIndex,
         children: const [
-          TodayScreen(),
-          CalendarScreen(),
-          EmployeeProfileScreen(),
-          ProfileScreen(), // Profile screen
+          TodayScreen(), // Today Screen
+          CalendarScreen(), // Calendar Screen
+          EmployeeProfileScreen(), // Employee Profile Screen
+          ProfileScreen(), // Profile Screen
+          VacationRequestScreen(), // Vacation Request Screen
         ],
       ),
       bottomNavigationBar: Container(
@@ -199,8 +202,7 @@ class _HomePageState extends State<HomePage> {
                               height: 3,
                               width: 22,
                               decoration: BoxDecoration(
-                                borderRadius:
-                                const BorderRadius.all(Radius.circular(40)),
+                                borderRadius: const BorderRadius.all(Radius.circular(40)),
                                 color: const Color(0xFF608BC1),
                               ),
                             ),
