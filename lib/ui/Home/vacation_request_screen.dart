@@ -14,11 +14,7 @@ class _VacationRequestScreenState extends State<VacationRequestScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Request Vacation/Sick Day"),
-        backgroundColor: const Color(0xFF608BC1),
-      ),
-      body: Padding(
+      body: SingleChildScrollView( // Wrap the body in a SingleChildScrollView to make it scrollable
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,7 +74,7 @@ class _VacationRequestScreenState extends State<VacationRequestScreen> {
                 },
                 child: const Text(
                   "Submit Request",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold,color: Colors.white),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
               ),
             ),

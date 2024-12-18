@@ -12,10 +12,7 @@ class EmployeeProfileScreen extends StatelessWidget {
     const Color accentColor = Color(0xFF133E87);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Employee Profile"),
-        backgroundColor: primaryColor,
-      ),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(

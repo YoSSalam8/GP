@@ -1,6 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:month_year_picker/month_year_picker.dart';
+import 'calendar_screen.dart'; // Your CalendarScreen widget file
+import 'package:flutter_localizations/flutter_localizations.dart'; // Import the localization package
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Month Year Picker Example',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      // Localization delegates
+      localizationsDelegates: [
+        GlobalMaterialLocalizations.delegate, // Material localization
+        GlobalWidgetsLocalizations.delegate,  // Widgets localization
+        MonthYearPickerLocalizations.delegate, // Month Year Picker localization
+      ],
+      supportedLocales: [
+        const Locale('en', 'US'), // Locale support for English
+      ],
+      home: CalendarScreen(), // Your CalendarScreen widget
+    );
+  }
+}
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({Key? key}) : super(key: key);
@@ -19,7 +47,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   String _month = DateFormat('MMMM').format(DateTime.now());
 
-  // Sample data for demonstration purposes
   final List<Map<String, dynamic>> sampleData = [
     {
       'date': DateTime(2024, DateTime.now().month, 5),
@@ -39,10 +66,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
     screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Employee Attendance"),
-          backgroundColor: const Color(0xFF608BC1),
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -82,39 +105,41 @@ class _CalendarScreenState extends State<CalendarScreen> {
         ),
         Align(
           alignment: Alignment.centerRight,
-          child: GestureDetector(
-            onTap: () async {
-              final month = await showMonthYearPicker(
-                context: context,
-                initialDate: DateTime.now(),
-                firstDate: DateTime(2022),
-                lastDate: DateTime(2099),
-                builder: (context, child) {
-                  return Theme(
-                    data: Theme.of(context).copyWith(
-                      colorScheme: ColorScheme.light(
-                        primary: primaryColor,
-                        secondary: accentColor,
-                        onSecondary: Colors.white,
+          child: Builder(
+            builder: (context) => GestureDetector(
+              onTap: () async {
+                final month = await showMonthYearPicker(
+                  context: context,
+                  initialDate: DateTime.now(),
+                  firstDate: DateTime(2022),
+                  lastDate: DateTime(2099),
+                  builder: (context, child) {
+                    return Theme(
+                      data: Theme.of(context).copyWith(
+                        colorScheme: ColorScheme.light(
+                          primary: primaryColor,
+                          secondary: accentColor,
+                          onSecondary: Colors.white,
+                        ),
                       ),
-                    ),
-                    child: child!,
-                  );
-                },
-              );
+                      child: child!,
+                    );
+                  },
+                );
 
-              if (month != null) {
-                setState(() {
-                  _month = DateFormat('MMMM').format(month);
-                });
-              }
-            },
-            child: Text(
-              "Pick a Month",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: screenWidth / 18,
-                color: accentColor,
+                if (month != null) {
+                  setState(() {
+                    _month = DateFormat('MMMM').format(month);
+                  });
+                }
+              },
+              child: Text(
+                "Pick a Month",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: screenWidth / 18,
+                  color: accentColor,
+                ),
               ),
             ),
           ),

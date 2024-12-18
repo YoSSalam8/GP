@@ -50,10 +50,7 @@ class _AdminMonthlyAttendancePageState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('Monthly Attendance Search'),
-        backgroundColor: primaryColor,
-      ),
+
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

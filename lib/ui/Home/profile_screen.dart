@@ -41,10 +41,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Edit Profile"),
-        backgroundColor: primaryColor,
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(

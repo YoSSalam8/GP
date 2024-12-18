@@ -1,19 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:intl/intl.dart';
 import 'package:slide_to_act/slide_to_act.dart';
-import 'attendance_data.dart'; // Import the AttendanceData class
-import 'model/user.dart'; // Import for user data with latitude and longitude
 
-class TodayScreen extends StatefulWidget {
-  const TodayScreen({super.key});
+class AdminCheckInOutScreen extends StatefulWidget {
+  const AdminCheckInOutScreen({super.key});
 
   @override
-  State<TodayScreen> createState() => _TodayScreenState();
+  State<AdminCheckInOutScreen> createState() => _AdminCheckInOutScreenState();
 }
 
-class _TodayScreenState extends State<TodayScreen> {
+class _AdminCheckInOutScreenState extends State<AdminCheckInOutScreen> {
   double screenHeight = 0;
   double screenWidth = 0;
 
@@ -25,19 +22,6 @@ class _TodayScreenState extends State<TodayScreen> {
   void initState() {
     super.initState();
     _scheduleMidnightReset();
-  }
-
-  void _getLocation() async {
-    try {
-      List<Placemark> placemarks = await placemarkFromCoordinates(User.lat, User.long);
-      setState(() {
-        location = "${placemarks[0].street}, ${placemarks[0].administrativeArea}, ${placemarks[0].country}";
-      });
-    } catch (e) {
-      setState(() {
-        location = "Unable to determine location.";
-      });
-    }
   }
 
   void _scheduleMidnightReset() {
@@ -65,6 +49,7 @@ class _TodayScreenState extends State<TodayScreen> {
     screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
+      backgroundColor: Colors.white, // Match the theme
 
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -91,16 +76,9 @@ class _TodayScreenState extends State<TodayScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          "Welcome",
+          "Welcome, Admin",
           style: TextStyle(
             color: Colors.black87,
-            fontSize: screenWidth / 18,
-          ),
-        ),
-        Text(
-          "Employee",
-          style: TextStyle(
-            color: Colors.black,
             fontSize: screenWidth / 18,
           ),
         ),
@@ -189,7 +167,7 @@ class _TodayScreenState extends State<TodayScreen> {
     if (checkOut != "--/--") {
       return Center(
         child: Text(
-          "You have completed this day!",
+          "You have completed your day!",
           style: TextStyle(
             fontSize: screenWidth / 20,
             color: Colors.black87,
@@ -211,7 +189,7 @@ class _TodayScreenState extends State<TodayScreen> {
       onSubmit: () {
         setState(() {
           checkIn = DateFormat('hh:mm').format(DateTime.now());
-          _getLocation();
+          location = "Admin Location"; // Update as needed
         });
         checkInKey.currentState!.reset();
       },
@@ -228,11 +206,7 @@ class _TodayScreenState extends State<TodayScreen> {
       onSubmit: () {
         setState(() {
           checkOut = DateFormat('hh:mm').format(DateTime.now());
-          AttendanceData().addRecord(
-            DateFormat('dd MMMM yyyy').format(DateTime.now()),
-            checkIn,
-            checkOut,
-          );
+          // Log the check-in and check-out data as needed
         });
         checkOutKey.currentState!.reset();
       },

@@ -56,10 +56,7 @@ class _AdminJobInterviewsPageState extends State<AdminJobInterviewsPage> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text("Job Interviews"),
-        backgroundColor: primaryColor,
-      ),
+
       body: Column(
         children: [
           // Date Display

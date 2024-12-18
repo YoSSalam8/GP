@@ -23,10 +23,7 @@ class _AdminSalaryCalculationPageState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('Salary Calculation'),
-        backgroundColor: primaryColor,
-      ),
+
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: employeeAttendance.length,

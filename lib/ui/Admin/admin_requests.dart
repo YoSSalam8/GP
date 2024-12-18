@@ -32,10 +32,7 @@ class _AdminRequestsPageState extends State<AdminRequestsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Employee Requests"),
-        backgroundColor: const Color(0xFF133E87),
-      ),
+
       body: requests.isNotEmpty
           ? ListView.builder(
         itemCount: requests.length,

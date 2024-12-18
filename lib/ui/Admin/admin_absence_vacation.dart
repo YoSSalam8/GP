@@ -52,10 +52,7 @@ class _AdminAbsenceVacationPageState extends State<AdminAbsenceVacationPage> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text("Employee Absence & Vacation"),
-        backgroundColor: primaryColor,
-      ),
+
       body: Column(
         children: [
           // Date Display

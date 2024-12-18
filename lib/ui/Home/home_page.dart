@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:graduation_project/ui/Home/calendar_screen.dart';
 import 'package:graduation_project/ui/Home/profile_screen.dart';
-import 'package:graduation_project/ui/Home/services/location_service.dart';
 import 'package:graduation_project/ui/Home/today_screen.dart';
-import 'package:graduation_project/ui/Home/employee_profile_screen.dart'; // Import the Employee Profile Screen
-import 'package:graduation_project/ui/Home/vacation_request_screen.dart'; // Import the new page
+import 'package:graduation_project/ui/Home/employee_profile_screen.dart';
+import 'package:graduation_project/ui/Home/vacation_request_screen.dart';
 import 'package:graduation_project/ui/Login/login_page.dart';
 
 import 'model/user.dart';
@@ -21,38 +20,14 @@ class _HomePageState extends State<HomePage> {
   double screenWidth = 0;
 
   String id = '';
-
-  List<IconData> navigationIcons = [
-    Icons.home, // Today screen
-    Icons.calendar_month, // Calendar screen
-    Icons.person, // Employee Profile screen
-    Icons.account_circle, // Profile screen
-    Icons.request_page, // Vacation request screen
-    Icons.logout, // Logout icon
-  ];
   int currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _startLocationService();
   }
 
-  void _startLocationService() async {
-    LocationService().initialize();
-
-    LocationService().getLongitude().then((value) {
-      setState(() {
-        User.long = value!;
-      });
-      LocationService().getLatitude().then((value) {
-        setState(() {
-          User.lat = value!;
-        });
-      });
-    });
-  }
-
+  // Method to handle logout
   void _showLogoutDialog() {
     showDialog(
       context: context,
@@ -136,85 +111,111 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // Method to navigate to the specific screen
+  void _navigateTo(int index) {
+    setState(() {
+      currentIndex = index;
+    });
+    Navigator.pop(context);  // Close the drawer when an item is clicked
+  }
+
   @override
   Widget build(BuildContext context) {
     screenHeight = MediaQuery.of(context).size.height;
     screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      body: IndexedStack(
-        index: currentIndex,
-        children: const [
-          TodayScreen(), // Today Screen
-          CalendarScreen(), // Calendar Screen
-          EmployeeProfileScreen(), // Employee Profile Screen
-          ProfileScreen(), // Profile Screen
-          VacationRequestScreen(), // Vacation Request Screen
-        ],
+      appBar: AppBar(
+        title: Text(getPageTitle(currentIndex)), // Dynamic page title
+        backgroundColor: const Color(0xFF608BC1),
+        leading: Builder(
+          builder: (BuildContext context) {
+            return IconButton(
+              icon: const Icon(Icons.menu), // Hamburger menu icon
+              onPressed: () {
+                Scaffold.of(context).openDrawer(); // Opens the drawer when the icon is tapped
+              },
+            );
+          },
+        ),
       ),
-      bottomNavigationBar: Container(
-        height: 70,
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.all(Radius.circular(40)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 10,
-              offset: Offset(2, 2),
+
+      // Add the Drawer widget
+      drawer: Drawer(
+        child: ListView(
+          padding: const EdgeInsets.all(0),
+          children: [
+            UserAccountsDrawerHeader(
+              accountName: Text("Employee Name"), // You can customize this with dynamic data
+              accountEmail: Text("employee@example.com"), // Similarly, dynamic email can be shown
+              currentAccountPicture: CircleAvatar(
+                backgroundColor: Colors.white,
+                child: Icon(Icons.person, color: Colors.blue),
+              ),
+            ),
+            ListTile(
+              leading: Icon(Icons.home),
+              title: Text("Today"),
+              onTap: () => _navigateTo(0),
+            ),
+            ListTile(
+              leading: Icon(Icons.calendar_month),
+              title: Text("Calendar"),
+              onTap: () => _navigateTo(1),
+            ),
+            ListTile(
+              leading: Icon(Icons.person),
+              title: Text("Employee Details"),
+              onTap: () => _navigateTo(2),
+            ),
+            ListTile(
+              leading: Icon(Icons.account_circle),
+              title: Text("Edit Profile"),
+              onTap: () => _navigateTo(3),
+            ),
+            ListTile(
+              leading: Icon(Icons.request_page),
+              title: Text("Vacation Request"),
+              onTap: () => _navigateTo(4),
+            ),
+            Divider(),
+            ListTile(
+              leading: Icon(Icons.logout),
+              title: Text("Logout"),
+              onTap: _showLogoutDialog,
             ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.all(Radius.circular(40)),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              for (int i = 0; i < navigationIcons.length; i++)
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        if (i == navigationIcons.length - 1) {
-                          _showLogoutDialog(); // Show logout dialog
-                        } else {
-                          currentIndex = i; // Switch to the selected tab
-                        }
-                      });
-                    },
-                    child: Container(
-                      color: Colors.white,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            navigationIcons[i],
-                            color: i == currentIndex
-                                ? const Color(0xFF608BC1)
-                                : Colors.black54,
-                            size: i == currentIndex ? 40 : 30,
-                          ),
-                          if (i == currentIndex && i != navigationIcons.length - 1)
-                            Container(
-                              margin: const EdgeInsets.only(top: 6),
-                              height: 3,
-                              width: 22,
-                              decoration: BoxDecoration(
-                                borderRadius: const BorderRadius.all(Radius.circular(40)),
-                                color: const Color(0xFF608BC1),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
+      ),
+
+      body: IndexedStack(
+        index: currentIndex,
+        children: const [
+          TodayScreen(),
+          CalendarScreen(),
+          EmployeeProfileScreen(),
+          ProfileScreen(),
+          VacationRequestScreen(),
+        ],
       ),
     );
+  }
+
+  // Function to get the page title dynamically
+  String getPageTitle(int index) {
+    switch (index) {
+      case 0:
+        return "Today Attendance";
+      case 1:
+        return "Monthly Attendance";
+      case 2:
+        return "Employee Profile";
+      case 3:
+        return "Profile";
+      case 4:
+        return "Vacation Request";
+      default:
+        return "Home";
+    }
   }
 }
