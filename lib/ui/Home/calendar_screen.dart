@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:month_year_picker/month_year_picker.dart';
-import 'calendar_screen.dart'; // Your CalendarScreen widget file
-import 'package:flutter_localizations/flutter_localizations.dart'; // Import the localization package
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() {
   runApp(MyApp());
@@ -14,18 +13,17 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Month Year Picker Example',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.teal,
       ),
-      // Localization delegates
       localizationsDelegates: [
-        GlobalMaterialLocalizations.delegate, // Material localization
-        GlobalWidgetsLocalizations.delegate,  // Widgets localization
-        MonthYearPickerLocalizations.delegate, // Month Year Picker localization
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        MonthYearPickerLocalizations.delegate,
       ],
       supportedLocales: [
-        const Locale('en', 'US'), // Locale support for English
+        const Locale('en', 'US'),
       ],
-      home: CalendarScreen(), // Your CalendarScreen widget
+      home: CalendarScreen(),
     );
   }
 }
@@ -41,11 +39,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
   double screenHeight = 0;
   double screenWidth = 0;
 
-  final Color primaryColor = const Color(0xFF608BC1);
-  final Color cardColor = const Color(0xFFE1D7B7);
-  final Color accentColor = const Color(0xFF133E87);
+  final Color primaryColor = const Color(0xFF008080);
+  final Color cardColor = Colors.white;
+  final Color accentColor = const Color(0xFF004D40);
 
-  String _month = DateFormat('MMMM').format(DateTime.now());
+  String _month = DateFormat('MMMM yyyy').format(DateTime.now());
 
   final List<Map<String, dynamic>> sampleData = [
     {
@@ -116,6 +114,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   builder: (context, child) {
                     return Theme(
                       data: Theme.of(context).copyWith(
+                        dialogBackgroundColor: Colors.white,
                         colorScheme: ColorScheme.light(
                           primary: primaryColor,
                           secondary: accentColor,
@@ -129,7 +128,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
                 if (month != null) {
                   setState(() {
-                    _month = DateFormat('MMMM').format(month);
+                    _month = DateFormat('MMMM yyyy').format(month);
                   });
                 }
               },
@@ -151,7 +150,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget _buildAttendanceList() {
     final filteredData = sampleData
         .where((record) =>
-    DateFormat('MMMM').format(record['date']) == _month)
+    DateFormat('MMMM yyyy').format(record['date']) == _month)
         .toList();
 
     return SizedBox(
@@ -166,11 +165,26 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _buildAttendanceCard(Map<String, dynamic> data, int index) {
+    final String checkIn = data['checkIn'].replaceAll(' ', '').trim();
+    final String checkOut = data['checkOut'].replaceAll(' ', '').trim();
+
+    String totalTimeWorked;
+
+    try {
+      final DateTime checkInTime = DateFormat.jm().parse(checkIn);
+      final DateTime checkOutTime = DateFormat.jm().parse(checkOut);
+      final Duration workedDuration = checkOutTime.difference(checkInTime);
+      totalTimeWorked =
+      "${workedDuration.inHours}h ${workedDuration.inMinutes.remainder(60)}m";
+    } catch (e) {
+      totalTimeWorked = "Invalid Time";
+    }
+
     return Container(
       margin: EdgeInsets.only(top: index > 0 ? 12 : 0, left: 6, right: 6),
-      height: 150,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardColor,
         boxShadow: const [
           BoxShadow(
             color: Colors.black26,
@@ -180,61 +194,67 @@ class _CalendarScreenState extends State<CalendarScreen> {
         ],
         borderRadius: const BorderRadius.all(Radius.circular(20)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildDateColumn(data['date']),
-          _buildInfoColumn("Check In", data['checkIn']),
-          _buildInfoColumn("Check Out", data['checkOut']),
+          Text(
+            DateFormat('EEEE, MMM dd, yyyy').format(data['date']),
+            style: TextStyle(
+              fontSize: screenWidth / 22,
+              fontWeight: FontWeight.bold,
+              color: accentColor,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildInfoBox("Check In", checkIn, Icons.login, Colors.green),
+              _buildInfoBox("Check Out", checkOut, Icons.logout, Colors.red),
+              _buildInfoBox("Total Time", totalTimeWorked, Icons.timer, Colors.blue),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildDateColumn(DateTime date) {
+  Widget _buildInfoBox(String label, String value, IconData icon, Color color) {
     return Expanded(
       child: Container(
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: primaryColor,
-          borderRadius: const BorderRadius.all(Radius.circular(20)),
+          color: color.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: Center(
-          child: Text(
-            DateFormat('EE\ndd').format(date),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: screenWidth / 18,
-              color: Colors.white,
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              color: color,
+              size: screenWidth / 12,
             ),
-          ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: screenWidth / 30,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: screenWidth / 28,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildInfoColumn(String label, String value) {
-    return Expanded(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: screenWidth / 20,
-              color: Colors.black,
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: screenWidth / 18,
-              color: Colors.black,
-            ),
-          ),
-        ],
       ),
     );
   }
