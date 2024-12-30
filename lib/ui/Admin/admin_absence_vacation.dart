@@ -48,126 +48,144 @@ class _AdminAbsenceVacationPageState extends State<AdminAbsenceVacationPage> {
 
   @override
   Widget build(BuildContext context) {
-    String formattedDate = DateFormat('EEEE, MMMM dd, yyyy').format(DateTime.now());
+    double screenWidth = MediaQuery.of(context).size.width;
+    bool isWeb = screenWidth > 600; // Check if it's a web environment
+    String formattedDate =
+    DateFormat('EEEE, MMMM dd, yyyy').format(DateTime.now());
 
     return Scaffold(
       backgroundColor: Colors.white,
-
-      body: Column(
-        children: [
-          // Date Display
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.calendar_today,
-                  color: accentColor,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  formattedDate,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: primaryColor,
-                  ),
-                ),
-              ],
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: isWeb ? 800 : double.infinity, // Constrain width for web
             ),
-          ),
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: TextField(
-              controller: searchController,
-              onChanged: filterSearchResults,
-              decoration: InputDecoration(
-                hintText: "Search by name...",
-                hintStyle: TextStyle(color: accentColor),
-                prefixIcon: Icon(Icons.search, color: accentColor),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: accentColor),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: accentColor),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: accentColor, width: 2),
-                ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: isWeb ? 40 : 16,
+                vertical: 16,
               ),
-            ),
-          ),
-          // Employee List
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: filteredEmployees.length,
-              itemBuilder: (context, index) {
-                return Card(
-                  color: cardBackgroundColor,
-                  elevation: 4,
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          backgroundColor:
-                          filteredEmployees[index]["status"] == "Present"
-                              ? Colors.green
-                              : Colors.redAccent,
-                          radius: 25,
-                          child: Icon(
-                            Icons.person,
-                            color: Colors.white,
-                            size: 30,
-                          ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Date Display
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today,
+                        color: accentColor,
+                        size: isWeb ? 24 : 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        formattedDate,
+                        style: TextStyle(
+                          fontSize: isWeb ? 20 : 18,
+                          fontWeight: FontWeight.bold,
+                          color: primaryColor,
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                filteredEmployees[index]["name"]!,
-                                style: TextStyle(
-                                  color: primaryColor,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                "Status: ${filteredEmployees[index]["status"]}",
-                                style: TextStyle(
-                                  color: filteredEmployees[index]["status"] ==
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Search Bar
+                  TextField(
+                    controller: searchController,
+                    onChanged: filterSearchResults,
+                    decoration: InputDecoration(
+                      hintText: "Search by name...",
+                      hintStyle: TextStyle(
+                        color: accentColor,
+                        fontSize: isWeb ? 18 : 16,
+                      ),
+                      prefixIcon: Icon(Icons.search, color: accentColor),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: accentColor),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: accentColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: accentColor, width: 2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Employee List
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: filteredEmployees.length,
+                      itemBuilder: (context, index) {
+                        return Card(
+                          color: cardBackgroundColor,
+                          elevation: isWeb ? 6 : 4,
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  backgroundColor:
+                                  filteredEmployees[index]["status"] ==
                                       "Present"
                                       ? Colors.green
                                       : Colors.redAccent,
-                                  fontSize: 14,
+                                  radius: isWeb ? 30 : 25,
+                                  child: Icon(
+                                    Icons.person,
+                                    color: Colors.white,
+                                    size: isWeb ? 36 : 30,
+                                  ),
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        filteredEmployees[index]["name"]!,
+                                        style: TextStyle(
+                                          color: primaryColor,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: isWeb ? 18 : 16,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        "Status: ${filteredEmployees[index]["status"]}",
+                                        style: TextStyle(
+                                          color: filteredEmployees[index]
+                                          ["status"] ==
+                                              "Present"
+                                              ? Colors.green
+                                              : Colors.redAccent,
+                                          fontSize: isWeb ? 16 : 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        );
+                      },
                     ),
                   ),
-                );
-              },
+                ],
+              ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

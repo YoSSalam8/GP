@@ -15,15 +15,15 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.teal,
       ),
-      localizationsDelegates: [
+      localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         MonthYearPickerLocalizations.delegate,
       ],
-      supportedLocales: [
-        const Locale('en', 'US'),
+      supportedLocales: const [
+        Locale('en', 'US'),
       ],
-      home: CalendarScreen(),
+      home: const CalendarScreen(),
     );
   }
 }
@@ -63,9 +63,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
     screenHeight = MediaQuery.of(context).size.height;
     screenWidth = MediaQuery.of(context).size.width;
 
+    bool isWeb = screenWidth > 600; // Determine if it's a web environment
+
     return Scaffold(
+
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.symmetric(
+          vertical: 20,
+          horizontal: isWeb ? screenWidth * 0.2 : 20, // Add margins for web
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -73,14 +79,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
               "My Attendance",
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: screenWidth / 18,
+                fontSize: isWeb ? 32 : screenWidth / 18, // Larger font for web
                 color: accentColor,
               ),
             ),
             const SizedBox(height: 20),
             _buildMonthPicker(),
             const SizedBox(height: 20),
-            _buildAttendanceList(),
+            _buildAttendanceList(isWeb),
           ],
         ),
       ),
@@ -96,7 +102,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             _month,
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: screenWidth / 18,
+              fontSize: screenWidth > 600 ? 28 : screenWidth / 18, // Adjust font size for web
               color: accentColor,
             ),
           ),
@@ -136,7 +142,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 "Pick a Month",
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: screenWidth / 18,
+                  fontSize: screenWidth > 600 ? 28 : screenWidth / 18, // Adjust font size for web
                   color: accentColor,
                 ),
               ),
@@ -147,24 +153,34 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  Widget _buildAttendanceList() {
+  Widget _buildAttendanceList(bool isWeb) {
     final filteredData = sampleData
         .where((record) =>
     DateFormat('MMMM yyyy').format(record['date']) == _month)
         .toList();
 
     return SizedBox(
-      height: screenHeight / 1.45,
-      child: ListView.builder(
+      height: isWeb ? screenHeight / 2 : screenHeight / 1.45, // Adjust height for web
+      child: filteredData.isNotEmpty
+          ? ListView.builder(
         itemCount: filteredData.length,
         itemBuilder: (context, index) {
-          return _buildAttendanceCard(filteredData[index], index);
+          return _buildAttendanceCard(filteredData[index], index, isWeb);
         },
+      )
+          : Center(
+        child: Text(
+          "No attendance records found.",
+          style: TextStyle(
+            fontSize: isWeb ? 24 : screenWidth / 22,
+            color: Colors.grey[700],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildAttendanceCard(Map<String, dynamic> data, int index) {
+  Widget _buildAttendanceCard(Map<String, dynamic> data, int index, bool isWeb) {
     final String checkIn = data['checkIn'].replaceAll(' ', '').trim();
     final String checkOut = data['checkOut'].replaceAll(' ', '').trim();
 
@@ -200,7 +216,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           Text(
             DateFormat('EEEE, MMM dd, yyyy').format(data['date']),
             style: TextStyle(
-              fontSize: screenWidth / 22,
+              fontSize: isWeb ? 22 : screenWidth / 22, // Adjust font size for web
               fontWeight: FontWeight.bold,
               color: accentColor,
             ),
@@ -209,9 +225,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildInfoBox("Check In", checkIn, Icons.login, Colors.green),
-              _buildInfoBox("Check Out", checkOut, Icons.logout, Colors.red),
-              _buildInfoBox("Total Time", totalTimeWorked, Icons.timer, Colors.blue),
+              _buildInfoBox("Check In", checkIn, Icons.login, Colors.green, isWeb),
+              _buildInfoBox("Check Out", checkOut, Icons.logout, Colors.red, isWeb),
+              _buildInfoBox(
+                  "Total Time", totalTimeWorked, Icons.timer, Colors.blue, isWeb),
             ],
           ),
         ],
@@ -219,7 +236,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  Widget _buildInfoBox(String label, String value, IconData icon, Color color) {
+  Widget _buildInfoBox(
+      String label, String value, IconData icon, Color color, bool isWeb) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(8),
@@ -232,13 +250,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
             Icon(
               icon,
               color: color,
-              size: screenWidth / 12,
+              size: isWeb ? 36 : screenWidth / 12, // Adjust icon size for web
             ),
             const SizedBox(height: 6),
             Text(
               label,
               style: TextStyle(
-                fontSize: screenWidth / 30,
+                fontSize: isWeb ? 16 : screenWidth / 30, // Adjust font size for web
                 fontWeight: FontWeight.bold,
                 color: color,
               ),
@@ -248,7 +266,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               value,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: screenWidth / 28,
+                fontSize: isWeb ? 14 : screenWidth / 28, // Adjust font size for web
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
               ),

@@ -31,7 +31,8 @@ class _TodayScreenState extends State<TodayScreen> {
     try {
       List<Placemark> placemarks = await placemarkFromCoordinates(User.lat, User.long);
       setState(() {
-        location = "${placemarks[0].street}, ${placemarks[0].administrativeArea}, ${placemarks[0].country}";
+        location =
+        "${placemarks[0].street}, ${placemarks[0].administrativeArea}, ${placemarks[0].country}";
       });
     } catch (e) {
       setState(() {
@@ -64,22 +65,26 @@ class _TodayScreenState extends State<TodayScreen> {
     screenHeight = MediaQuery.of(context).size.height;
     screenWidth = MediaQuery.of(context).size.width;
 
-    return Scaffold(
+    bool isWeb = screenWidth > 600;
 
+    return Scaffold(
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.symmetric(
+          vertical: 20,
+          horizontal: isWeb ? screenWidth * 0.2 : 20, // Add margins for web
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildGreeting(),
             const SizedBox(height: 32),
-            _buildStatusCard(),
+            _buildStatusCard(isWeb),
             const SizedBox(height: 20),
-            _buildCurrentTimeAndDate(),
+            _buildCurrentTimeAndDate(isWeb),
             const SizedBox(height: 24),
-            _buildSlideAction(),
+            _buildSlideAction(isWeb),
             const SizedBox(height: 32),
-            if (location != " ") _buildLocation(),
+            if (location != " ") _buildLocation(isWeb),
           ],
         ),
       ),
@@ -94,24 +99,28 @@ class _TodayScreenState extends State<TodayScreen> {
           "Welcome",
           style: TextStyle(
             color: Colors.black87,
-            fontSize: screenWidth / 18,
+            fontSize: screenWidth > 600 ? 32 : 24, // Larger font for web
+            fontWeight: FontWeight.bold,
           ),
         ),
         Text(
           "Employee",
           style: TextStyle(
             color: Colors.black,
-            fontSize: screenWidth / 18,
+            fontSize: screenWidth > 600 ? 32 : 24, // Larger font for web
           ),
         ),
       ],
     );
   }
 
-  Widget _buildStatusCard() {
+  Widget _buildStatusCard(bool isWeb) {
     return Container(
+      constraints: BoxConstraints(
+        maxWidth: isWeb ? 700 : double.infinity, // Limit card width for web
+      ),
       margin: const EdgeInsets.symmetric(vertical: 12),
-      height: 150,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -126,27 +135,35 @@ class _TodayScreenState extends State<TodayScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildStatusColumn("Check In", checkIn),
-          _buildStatusColumn("Check Out", checkOut),
+          _buildStatusColumn("Check In", checkIn, isWeb),
+          Container(
+            width: 1,
+            height: 60,
+            color: Colors.grey,
+          ), // Divider between columns
+          _buildStatusColumn("Check Out", checkOut, isWeb),
         ],
       ),
     );
   }
 
-  Widget _buildStatusColumn(String label, String time) {
+  Widget _buildStatusColumn(String label, String time, bool isWeb) {
     return Expanded(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             label,
-            style: const TextStyle(color: Colors.black),
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: isWeb ? 20 : 16, // Adjust font size for web
+            ),
           ),
           Text(
             time,
             style: TextStyle(
               color: Colors.black,
-              fontSize: screenWidth / 18,
+              fontSize: isWeb ? 28 : 20, // Adjust font size for web
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -155,7 +172,7 @@ class _TodayScreenState extends State<TodayScreen> {
     );
   }
 
-  Widget _buildCurrentTimeAndDate() {
+  Widget _buildCurrentTimeAndDate(bool isWeb) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -165,7 +182,7 @@ class _TodayScreenState extends State<TodayScreen> {
             return Text(
               DateFormat('hh:mm:ss a').format(DateTime.now()),
               style: TextStyle(
-                fontSize: screenWidth / 20,
+                fontSize: isWeb ? 24 : 18, // Adjust font size for web
                 color: Colors.black,
               ),
             );
@@ -174,7 +191,7 @@ class _TodayScreenState extends State<TodayScreen> {
         Text(
           DateFormat('dd MMMM yyyy').format(DateTime.now()),
           style: TextStyle(
-            fontSize: screenWidth / 20,
+            fontSize: isWeb ? 24 : 18, // Adjust font size for web
             color: Colors.black,
           ),
         ),
@@ -182,7 +199,7 @@ class _TodayScreenState extends State<TodayScreen> {
     );
   }
 
-  Widget _buildSlideAction() {
+  Widget _buildSlideAction(bool isWeb) {
     final GlobalKey<SlideActionState> checkInKey = GlobalKey<SlideActionState>();
     final GlobalKey<SlideActionState> checkOutKey = GlobalKey<SlideActionState>();
 
@@ -191,7 +208,7 @@ class _TodayScreenState extends State<TodayScreen> {
         child: Text(
           "You have completed this day!",
           style: TextStyle(
-            fontSize: screenWidth / 20,
+            fontSize: isWeb ? 24 : 18, // Adjust font size for web
             color: Colors.black87,
           ),
         ),
@@ -203,7 +220,7 @@ class _TodayScreenState extends State<TodayScreen> {
       text: "Slide To Check In",
       textStyle: TextStyle(
         color: Colors.black45,
-        fontSize: screenWidth / 20,
+        fontSize: isWeb ? 22 : 16, // Adjust font size for web
       ),
       outerColor: Colors.white,
       innerColor: Colors.green,
@@ -220,7 +237,7 @@ class _TodayScreenState extends State<TodayScreen> {
       text: "Slide To Check Out",
       textStyle: TextStyle(
         color: Colors.black45,
-        fontSize: screenWidth / 20,
+        fontSize: isWeb ? 22 : 16, // Adjust font size for web
       ),
       outerColor: Colors.white,
       innerColor: Colors.red,
@@ -239,12 +256,12 @@ class _TodayScreenState extends State<TodayScreen> {
     );
   }
 
-  Widget _buildLocation() {
+  Widget _buildLocation(bool isWeb) {
     return Text(
       "Location: $location",
       style: TextStyle(
         color: Colors.black54,
-        fontSize: screenWidth / 22,
+        fontSize: isWeb ? 22 : 16, // Adjust font size for web
       ),
     );
   }

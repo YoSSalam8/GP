@@ -29,6 +29,9 @@ class _HomePageState extends State<HomePage> {
 
   // Method to handle logout
   void _showLogoutDialog() {
+    double screenWidth = MediaQuery.of(context).size.width;
+    bool isWeb = screenWidth > 600; // Check if it's a web environment
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -36,74 +39,85 @@ class _HomePageState extends State<HomePage> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.logout,
-                  size: 50,
-                  color: Colors.redAccent,
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  "Confirm Logout",
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: isWeb ? 400 : double.infinity, // Limit width for web
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(isWeb ? 30 : 20), // Add more padding for web
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.logout,
+                    size: 60, // Slightly larger icon
+                    color: Colors.redAccent,
                   ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  "Are you sure you want to logout?",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[700],
-                  ),
-                ),
-                const SizedBox(height: 25),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey[300],
-                        foregroundColor: Colors.black,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.of(context).pop(); // Close the dialog
-                      },
-                      child: const Text("Cancel"),
+                  const SizedBox(height: 20),
+                  Text(
+                    "Confirm Logout",
+                    style: TextStyle(
+                      fontSize: isWeb ? 26 : 22, // Adjust font size for web
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.of(context).pop(); // Close the dialog
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(
-                            builder: (context) => const Login(),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    "Are you sure you want to logout?",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: isWeb ? 18 : 16, // Adjust font size for web
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                  const SizedBox(height: 25),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey[300],
+                          foregroundColor: Colors.black,
+                          padding: EdgeInsets.symmetric(
+                            vertical: isWeb ? 16 : 12, // Larger padding for web
                           ),
-                        );
-                      },
-                      child: const Text(
-                        "Logout",
-                        style: TextStyle(color: Colors.white),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).pop(); // Close the dialog
+                        },
+                        child: const Text("Cancel"),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.redAccent,
+                          padding: EdgeInsets.symmetric(
+                            vertical: isWeb ? 16 : 12, // Larger padding for web
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).pop(); // Close the dialog
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (context) => const Login(),
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          "Logout",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         );

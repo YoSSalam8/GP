@@ -13,15 +13,26 @@ class _VacationRequestScreenState extends State<VacationRequestScreen> {
 
   @override
   Widget build(BuildContext context) {
+    double screenWidth = MediaQuery.of(context).size.width;
+
+    // Determine if the device is web
+    bool isWeb = screenWidth > 600;
+
     return Scaffold(
-      body: SingleChildScrollView( // Wrap the body in a SingleChildScrollView to make it scrollable
-        padding: const EdgeInsets.all(16),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(
+          vertical: 20,
+          horizontal: isWeb ? screenWidth * 0.2 : 16, // Adjust margins for web
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               "Select Number of Days:",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: isWeb ? 20 : 18, // Larger font for web
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 10),
             DropdownButton<int>(
@@ -41,40 +52,50 @@ class _VacationRequestScreenState extends State<VacationRequestScreen> {
               },
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               "Message to Manager:",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: isWeb ? 20 : 18, // Larger font for web
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 10),
             TextField(
               controller: messageController,
-              maxLines: 5,
+              maxLines: isWeb ? 8 : 5, // Increase lines for web
               decoration: InputDecoration(
                 border: OutlineInputBorder(),
                 hintText: "Enter your message...",
               ),
             ),
             const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF133E87),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                onPressed: () {
-                  // Handle request submission
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                          "Request sent for $selectedDays day(s): ${messageController.text}"),
+            Center(
+              child: SizedBox(
+                width: isWeb ? screenWidth * 0.4 : double.infinity, // Constrain button width on web
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF133E87),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  onPressed: () {
+                    // Handle request submission
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          "Request sent for $selectedDays day(s): ${messageController.text}",
+                        ),
+                      ),
+                    );
+                    messageController.clear();
+                  },
+                  child: const Text(
+                    "Submit Request",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
-                  );
-                  messageController.clear();
-                },
-                child: const Text(
-                  "Submit Request",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
                 ),
               ),
             ),

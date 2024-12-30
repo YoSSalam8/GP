@@ -47,31 +47,45 @@ class _AdminCheckInOutScreenState extends State<AdminCheckInOutScreen> {
   Widget build(BuildContext context) {
     screenHeight = MediaQuery.of(context).size.height;
     screenWidth = MediaQuery.of(context).size.width;
+    bool isWeb = screenWidth > 600; // Check for web layout
 
     return Scaffold(
-      backgroundColor: Colors.white, // Match the theme
-
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildGreeting(),
-            const SizedBox(height: 32),
-            _buildStatusCard(),
-            const SizedBox(height: 20),
-            _buildCurrentTimeAndDate(),
-            const SizedBox(height: 24),
-            _buildSlideAction(),
-            const SizedBox(height: 32),
-            if (location != " ") _buildLocation(),
-          ],
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: isWeb ? 800 : double.infinity, // Constrain width for web
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isWeb ? 40 : 20, // Extra padding for web
+                  vertical: 20,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildGreeting(isWeb),
+                    const SizedBox(height: 32),
+                    _buildStatusCard(isWeb),
+                    const SizedBox(height: 20),
+                    _buildCurrentTimeAndDate(isWeb),
+                    const SizedBox(height: 24),
+                    _buildSlideAction(isWeb),
+                    const SizedBox(height: 32),
+                    if (location != " ") _buildLocation(isWeb),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildGreeting() {
+  Widget _buildGreeting(bool isWeb) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -79,17 +93,18 @@ class _AdminCheckInOutScreenState extends State<AdminCheckInOutScreen> {
           "Welcome, Admin",
           style: TextStyle(
             color: Colors.black87,
-            fontSize: screenWidth / 18,
+            fontSize: isWeb ? 28 : 20, // Larger font for web
+            fontWeight: FontWeight.bold,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildStatusCard() {
+  Widget _buildStatusCard(bool isWeb) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 12),
-      height: 150,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -102,29 +117,33 @@ class _AdminCheckInOutScreenState extends State<AdminCheckInOutScreen> {
         borderRadius: const BorderRadius.all(Radius.circular(20)),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildStatusColumn("Check In", checkIn),
-          _buildStatusColumn("Check Out", checkOut),
+          _buildStatusColumn("Check In", checkIn, isWeb),
+          _buildStatusColumn("Check Out", checkOut, isWeb),
         ],
       ),
     );
   }
 
-  Widget _buildStatusColumn(String label, String time) {
+  Widget _buildStatusColumn(String label, String time, bool isWeb) {
     return Expanded(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             label,
-            style: const TextStyle(color: Colors.black),
+            style: TextStyle(
+              color: Colors.black87,
+              fontSize: isWeb ? 18 : 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           Text(
             time,
             style: TextStyle(
               color: Colors.black,
-              fontSize: screenWidth / 18,
+              fontSize: isWeb ? 22 : 18,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -133,7 +152,7 @@ class _AdminCheckInOutScreenState extends State<AdminCheckInOutScreen> {
     );
   }
 
-  Widget _buildCurrentTimeAndDate() {
+  Widget _buildCurrentTimeAndDate(bool isWeb) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -143,8 +162,8 @@ class _AdminCheckInOutScreenState extends State<AdminCheckInOutScreen> {
             return Text(
               DateFormat('hh:mm:ss a').format(DateTime.now()),
               style: TextStyle(
-                fontSize: screenWidth / 20,
-                color: Colors.black,
+                fontSize: isWeb ? 20 : 18,
+                color: Colors.black87,
               ),
             );
           },
@@ -152,15 +171,15 @@ class _AdminCheckInOutScreenState extends State<AdminCheckInOutScreen> {
         Text(
           DateFormat('dd MMMM yyyy').format(DateTime.now()),
           style: TextStyle(
-            fontSize: screenWidth / 20,
-            color: Colors.black,
+            fontSize: isWeb ? 20 : 18,
+            color: Colors.black87,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildSlideAction() {
+  Widget _buildSlideAction(bool isWeb) {
     final GlobalKey<SlideActionState> checkInKey = GlobalKey<SlideActionState>();
     final GlobalKey<SlideActionState> checkOutKey = GlobalKey<SlideActionState>();
 
@@ -169,7 +188,7 @@ class _AdminCheckInOutScreenState extends State<AdminCheckInOutScreen> {
         child: Text(
           "You have completed your day!",
           style: TextStyle(
-            fontSize: screenWidth / 20,
+            fontSize: isWeb ? 20 : 18,
             color: Colors.black87,
           ),
         ),
@@ -181,7 +200,7 @@ class _AdminCheckInOutScreenState extends State<AdminCheckInOutScreen> {
       text: "Slide To Check In",
       textStyle: TextStyle(
         color: Colors.black45,
-        fontSize: screenWidth / 20,
+        fontSize: isWeb ? 18 : 16,
       ),
       outerColor: Colors.white,
       innerColor: Colors.green,
@@ -198,7 +217,7 @@ class _AdminCheckInOutScreenState extends State<AdminCheckInOutScreen> {
       text: "Slide To Check Out",
       textStyle: TextStyle(
         color: Colors.black45,
-        fontSize: screenWidth / 20,
+        fontSize: isWeb ? 18 : 16,
       ),
       outerColor: Colors.white,
       innerColor: Colors.red,
@@ -206,19 +225,18 @@ class _AdminCheckInOutScreenState extends State<AdminCheckInOutScreen> {
       onSubmit: () {
         setState(() {
           checkOut = DateFormat('hh:mm').format(DateTime.now());
-          // Log the check-in and check-out data as needed
         });
         checkOutKey.currentState!.reset();
       },
     );
   }
 
-  Widget _buildLocation() {
+  Widget _buildLocation(bool isWeb) {
     return Text(
       "Location: $location",
       style: TextStyle(
         color: Colors.black54,
-        fontSize: screenWidth / 22,
+        fontSize: isWeb ? 18 : 16,
       ),
     );
   }

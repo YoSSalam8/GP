@@ -9,7 +9,6 @@ class AdminJobInterviewsPage extends StatefulWidget {
 }
 
 class _AdminJobInterviewsPageState extends State<AdminJobInterviewsPage> {
-  // Sample data for job interviews
   final List<Map<String, dynamic>> jobInterviews = [
     {
       "candidate": "Yousef AbdulSalam",
@@ -52,131 +51,154 @@ class _AdminJobInterviewsPageState extends State<AdminJobInterviewsPage> {
 
   @override
   Widget build(BuildContext context) {
-    String formattedDate = DateFormat('EEEE, MMMM dd, yyyy').format(DateTime.now());
+    double screenWidth = MediaQuery.of(context).size.width;
+    bool isWeb = screenWidth > 600; // Check for web layout
+    String formattedDate =
+    DateFormat('EEEE, MMMM dd, yyyy').format(DateTime.now());
 
     return Scaffold(
       backgroundColor: Colors.white,
-
-      body: Column(
-        children: [
-          // Date Display
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.calendar_today,
-                  color: accentColor,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  formattedDate,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: primaryColor,
-                  ),
-                ),
-              ],
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: isWeb ? 800 : double.infinity, // Constrain width for web
             ),
-          ),
-          // Interviews List
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: jobInterviews.length,
-              itemBuilder: (context, index) {
-                return Card(
-                  color: cardBackgroundColor,
-                  elevation: 4,
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: isWeb ? 40 : 16,
+                vertical: 16,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Date Display
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today,
+                        color: accentColor,
+                        size: isWeb ? 24 : 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        formattedDate,
+                        style: TextStyle(
+                          fontSize: isWeb ? 20 : 18,
+                          fontWeight: FontWeight.bold,
+                          color: primaryColor,
+                        ),
+                      ),
+                    ],
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Checkbox(
-                          value: jobInterviews[index]["completed"],
-                          onChanged: (value) {
-                            toggleCompletion(index);
-                          },
-                          activeColor: accentColor,
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                jobInterviews[index]["candidate"],
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                  color: jobInterviews[index]["completed"]
-                                      ? Colors.grey
-                                      : primaryColor,
-                                  decoration: jobInterviews[index]["completed"]
-                                      ? TextDecoration.lineThrough
-                                      : TextDecoration.none,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                "Date: ${jobInterviews[index]["date"]}\n"
-                                    "Time: ${jobInterviews[index]["time"]}\n"
-                                    "Position: ${jobInterviews[index]["description"]}",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: jobInterviews[index]["completed"]
-                                      ? Colors.grey
-                                      : Colors.black87,
-                                  decoration: jobInterviews[index]["completed"]
-                                      ? TextDecoration.lineThrough
-                                      : TextDecoration.none,
-                                ),
-                              ),
-                            ],
+                  const SizedBox(height: 16),
+                  // Interviews List
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: jobInterviews.length,
+                      itemBuilder: (context, index) {
+                        return Card(
+                          color: cardBackgroundColor,
+                          elevation: isWeb ? 6 : 4,
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        ),
-                        Icon(
-                          Icons.event_available,
-                          color: jobInterviews[index]["completed"]
-                              ? Colors.grey
-                              : accentColor,
-                          size: 30,
-                        ),
-                      ],
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              children: [
+                                Checkbox(
+                                  value: jobInterviews[index]["completed"],
+                                  onChanged: (value) {
+                                    toggleCompletion(index);
+                                  },
+                                  activeColor: accentColor,
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        jobInterviews[index]["candidate"],
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: isWeb ? 18 : 16,
+                                          color: jobInterviews[index]
+                                          ["completed"]
+                                              ? Colors.grey
+                                              : primaryColor,
+                                          decoration: jobInterviews[index]
+                                          ["completed"]
+                                              ? TextDecoration.lineThrough
+                                              : TextDecoration.none,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        "Date: ${jobInterviews[index]["date"]}\n"
+                                            "Time: ${jobInterviews[index]["time"]}\n"
+                                            "Position: ${jobInterviews[index]["description"]}",
+                                        style: TextStyle(
+                                          fontSize: isWeb ? 16 : 14,
+                                          color: jobInterviews[index]
+                                          ["completed"]
+                                              ? Colors.grey
+                                              : Colors.black87,
+                                          decoration: jobInterviews[index]
+                                          ["completed"]
+                                              ? TextDecoration.lineThrough
+                                              : TextDecoration.none,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.event_available,
+                                  color: jobInterviews[index]["completed"]
+                                      ? Colors.grey
+                                      : accentColor,
+                                  size: isWeb ? 30 : 24,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
-                );
-              },
-            ),
-          ),
-          // Clear Completed Button
-          if (jobInterviews.any((interview) => interview["completed"]))
-            Container(
-              padding: const EdgeInsets.all(16),
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: accentColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: clearCompletedInterviews,
-                child: const Text(
-                  "Clear Completed Interviews",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+                  // Clear Completed Button
+                  if (jobInterviews.any((interview) => interview["completed"]))
+                    Container(
+                      padding: const EdgeInsets.only(top: 16),
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accentColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: clearCompletedInterviews,
+                        child: Text(
+                          "Clear Completed Interviews",
+                          style: TextStyle(
+                            fontSize: isWeb ? 18 : 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
-        ],
+          ),
+        ),
       ),
     );
   }

@@ -31,78 +31,133 @@ class _AdminRequestsPageState extends State<AdminRequestsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    double screenWidth = MediaQuery.of(context).size.width;
+    bool isWeb = screenWidth > 600; // Determine if it's web layout
 
-      body: requests.isNotEmpty
-          ? ListView.builder(
-        itemCount: requests.length,
-        itemBuilder: (context, index) {
-          final request = requests[index];
-          return Card(
-            margin: const EdgeInsets.all(12),
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: isWeb ? 800 : double.infinity, // Constrain width for web
             ),
             child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Employee: ${request["employee"]}",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
+              padding: EdgeInsets.symmetric(
+                horizontal: isWeb ? 40 : 16, // Add padding for web
+                vertical: 16,
+              ),
+              child: requests.isNotEmpty
+                  ? ListView.builder(
+                itemCount: requests.length,
+                itemBuilder: (context, index) {
+                  final request = requests[index];
+                  return Card(
+                    elevation: isWeb ? 6 : 4,
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                  ),
-                  Text(
-                    "Type: ${request["type"]}",
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  Text(
-                    "Days: ${request["days"]}",
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "Message: ${request["message"]}",
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          handleAction(index); // Remove the card on accept
-                        },
-                        child: const Text(
-                          "Accept",
-                          style: TextStyle(fontSize: 18),
-                        ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Employee: ${request["employee"]}",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: isWeb ? 20 : 18,
+                              color: const Color(0xFF133E87),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            "Type: ${request["type"]}",
+                            style: TextStyle(
+                              fontSize: isWeb ? 18 : 16,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          Text(
+                            "Days: ${request["days"]}",
+                            style: TextStyle(
+                              fontSize: isWeb ? 18 : 16,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            "Message: ${request["message"]}",
+                            style: TextStyle(
+                              fontSize: isWeb ? 18 : 16,
+                              color: Colors.black54,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              ElevatedButton(
+                                onPressed: () {
+                                  handleAction(index); // Remove card on accept
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF608BC1),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: const Text(
+                                  "Accept",
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                onPressed: () {
+                                  handleAction(index); // Remove card on deny
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.redAccent,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: const Text(
+                                  "Deny",
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      TextButton(
-                        onPressed: () {
-                          handleAction(index); // Remove the card on deny
-                        },
-                        child: const Text(
-                          "Deny",
-                          style: TextStyle(fontSize: 18),
-                        ),
-                      ),
-                    ],
+                    ),
+                  );
+                },
+              )
+                  : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.inbox,
+                    size: isWeb ? 80 : 60,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    "No requests available.",
+                    style: TextStyle(
+                      fontSize: isWeb ? 20 : 18,
+                      color: Colors.black54,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
             ),
-          );
-        },
-      )
-          : const Center(
-        child: Text(
-          "No requests available.",
-          style: TextStyle(fontSize: 18, color: Colors.black54),
+          ),
         ),
       ),
     );
