@@ -7,88 +7,173 @@ import 'package:graduation_project/ui/Login/components/rounded_password_field.da
 import 'package:graduation_project/ui/Login/login_page.dart';
 import 'package:graduation_project/ui/Signup/components/background.dart';
 
-class Body extends StatelessWidget {
-  const Body({super.key});
+class MultiStageSignUp extends StatefulWidget {
+  const MultiStageSignUp({super.key});
+
+  @override
+  _MultiStageSignUpState createState() => _MultiStageSignUpState();
+}
+
+class _MultiStageSignUpState extends State<MultiStageSignUp> {
+  int currentStage = 0;
+
+  // Form data
+  String companyName = "";
+  List<String> emailDomains = [];
+  List<int> countryIds = [];
+  List<int> taxCodeIds = [];
+  List<Map<String, dynamic>> departments = [];
+
+  void nextStage() {
+    setState(() {
+      currentStage++;
+    });
+  }
+
+  void previousStage() {
+    setState(() {
+      if (currentStage > 0) currentStage--;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
-    bool isWeb = size.width > 600; // Determine if the device is web
+    bool isWeb = size.width > 600;
 
-    return Background(
-      showBackgroundImages: !isWeb, // Hide background images on web
-      child: Center(
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Sign Up - Step ${currentStage + 1}"),
+        backgroundColor: const Color(0xFF608BC1),
+      ),
+      body: Center(
         child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(
-            horizontal: isWeb ? size.width * 0.2 : 16, // Add side margins for web
+            horizontal: isWeb ? size.width * 0.2 : 16,
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              SizedBox(height: isWeb ? 50 : 100), // Adjust spacing for web
-              Text(
-                "SIGNUP",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: isWeb ? 32 : 24, // Larger font for web
-                  color: const Color(0xFF133E87),
-                ),
-              ),
+            children: [
+              if (currentStage == 0) buildCompanyStage(),
+              if (currentStage == 1) buildCountryStage(),
+              if (currentStage == 2) buildDepartmentStage(),
               SizedBox(height: size.height * 0.03),
-              Image.asset(
-                'images/signup.png', // Ensure the image remains on both web and mobile
-                height: isWeb ? 250 : size.height * 0.35, // Adjust size for web
-                fit: BoxFit.contain,
-              ),
-              SizedBox(height: size.height * 0.03),
-              RoundedInputField(
-                hintText: "Your Email",
-                onChanged: (value) {},
-              ),
-              RoundedPasswordField(
-                onChanged: (value) {},
-              ),
-              RoundedPasswordField(
-                onChanged: (value) {},
-              ),
-              RoundedInputField(
-                hintText: "Access Code",
-                onChanged: (value) {},
-              ),
-              RoundedButton(
-                text: "SIGNUP",
-                press: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) {
-                        return const AdminHomePage();
-                      },
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  if (currentStage > 0)
+                    ElevatedButton(
+                      onPressed: previousStage,
+                      child: const Text("Back"),
                     ),
-                  );
-                },
-                color: const Color(0xFF608BC1),
-                textColor: Colors.white,
+                  ElevatedButton(
+                    onPressed: () {
+                      if (currentStage == 2) {
+                        // Final submission logic
+                        print({
+                          "name": companyName,
+                          "emailDomains": emailDomains,
+                          "countryIds": countryIds,
+                          "taxCodeIds": taxCodeIds,
+                          "departments": departments,
+                        });
+                      } else {
+                        nextStage();
+                      }
+                    },
+                    child: Text(currentStage == 2 ? "Submit" : "Next"),
+                  ),
+                ],
               ),
-              SizedBox(height: size.height * 0.03),
-              AlreadyHaveAnAccountCheck(
-                login: false,
-                press: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) {
-                        return const Login();
-                      },
-                    ),
-                  );
-                },
-              ),
-              SizedBox(height: isWeb ? 20 : size.height * 0.1), // Adjust spacing for web
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget buildCompanyStage() {
+    return Column(
+      children: [
+        const Text(
+          "Step 1: Company Information",
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        RoundedInputField(
+          hintText: "Company Name",
+          onChanged: (value) {
+            companyName = value;
+          },
+        ),
+        RoundedInputField(
+          hintText: "Email Domains (comma-separated)",
+          onChanged: (value) {
+            emailDomains = value.split(",").map((e) => e.trim()).toList();
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget buildCountryStage() {
+    return Column(
+      children: [
+        const Text(
+          "Step 2: Country and Tax Information",
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        RoundedInputField(
+          hintText: "Country IDs (comma-separated)",
+          onChanged: (value) {
+            countryIds = value.split(",").map((e) => int.tryParse(e.trim()) ?? 0).toList();
+          },
+        ),
+        RoundedInputField(
+          hintText: "Tax Code IDs (comma-separated)",
+          onChanged: (value) {
+            taxCodeIds = value.split(",").map((e) => int.tryParse(e.trim()) ?? 0).toList();
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget buildDepartmentStage() {
+    return Column(
+      children: [
+        const Text(
+          "Step 3: Departments and Authorities",
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        RoundedInputField(
+          hintText: "Department Name",
+          onChanged: (value) {
+            if (departments.isEmpty || departments.last["workTitles"] != null) {
+              departments.add({"name": value, "workTitles": []});
+            } else {
+              departments.last["name"] = value;
+            }
+          },
+        ),
+        RoundedInputField(
+          hintText: "Work Title Name",
+          onChanged: (value) {
+            if (departments.isNotEmpty && departments.last["workTitles"] != null) {
+              departments.last["workTitles"].add({"name": value, "authorityIds": []});
+            }
+          },
+        ),
+        RoundedInputField(
+          hintText: "Authority IDs (comma-separated)",
+          onChanged: (value) {
+            if (departments.isNotEmpty && departments.last["workTitles"] != null) {
+              List<int> authorityIds =
+              value.split(",").map((e) => int.tryParse(e.trim()) ?? 0).toList();
+              departments.last["workTitles"].last["authorityIds"] = authorityIds;
+            }
+          },
+        ),
+      ],
     );
   }
 }

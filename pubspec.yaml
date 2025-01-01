@@ -45,13 +45,26 @@ dependencies:
   permission_handler: ^10.0.0
   image_picker: ^1.1.2
   flutter_pdfview: ^1.0.4
+  fl_chart: ^0.70.0
+  http: ^1.2.2
+
+  syncfusion_flutter_datepicker: ^20.4.50 # Add the latest version available
+  csv: ^5.0.0 # Add the latest version available
+  path_provider: ^2.0.14 # Add the latest version available
+
   flutter_localizations:
     sdk: flutter
 
 
 dev_dependencies:
+  flutter_launcher_icons: ^0.13.1
   flutter_test:
     sdk: flutter
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "images/logo_fusion.png"
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

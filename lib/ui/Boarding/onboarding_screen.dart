@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'constants.dart';
 import '../Login/login_page.dart';
+import 'landing_page.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -46,17 +47,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             controller: _pageController,
             children: [
               createPage(
-                image: 'images/HR_LOGO.png',
+                image: 'images/logo_fusion.png',
                 title: Constants.titleOne,
                 description: Constants.descOne,
               ),
               createPage(
-                image: 'images/HR_LOGO2.jpg',
+                image: 'images/logo_fusion.png',
                 title: Constants.titleTwo,
                 description: Constants.descTwo,
               ),
               createPage(
-                image: 'images/Lets_start_logo.jpg',
+                image: 'images/logo_fusion.png',
                 title: Constants.titleThree,
                 description: Constants.descThree,
               ),
@@ -87,7 +88,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     } else {
                       Navigator.pushReplacement(
                         context,
-                        MaterialPageRoute(builder: (_) => const Login()),
+                        MaterialPageRoute(builder: (_) =>  LandingPage()),
                       );
                     }
                   });

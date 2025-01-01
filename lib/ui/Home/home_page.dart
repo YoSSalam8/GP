@@ -141,7 +141,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(getPageTitle(currentIndex)), // Dynamic page title
-        backgroundColor: const Color(0xFF608BC1),
+        backgroundColor: Colors.blue.shade900,
         leading: Builder(
           builder: (BuildContext context) {
             return IconButton(

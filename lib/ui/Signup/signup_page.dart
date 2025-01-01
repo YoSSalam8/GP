@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:graduation_project/ui/Signup/components/body.dart';
+import 'package:graduation_project/ui/Signup/components/multi_stage_signup.dart';
 
 class SignupPage extends StatelessWidget {
   const SignupPage({super.key});
@@ -7,7 +7,7 @@ class SignupPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: const Body(), // No need to pass a child since Body doesn't expect it
+      body: const MultiStageSignUp(),
     );
   }
 }
