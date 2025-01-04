@@ -5,6 +5,10 @@ import 'package:graduation_project/ui/Home/today_screen.dart';
 import 'package:graduation_project/ui/Home/employee_profile_screen.dart';
 import 'package:graduation_project/ui/Home/vacation_request_screen.dart';
 import 'package:graduation_project/ui/Login/login_page.dart';
+import 'package:graduation_project/ui/Home/add_employee_screen.dart';
+import 'package:graduation_project/ui/Admin/edit_company_screen.dart'; // Import EditCompanyScreen
+
+
 
 import 'model/user.dart';
 
@@ -192,6 +196,10 @@ class _HomePageState extends State<HomePage> {
               title: Text("Vacation Request"),
               onTap: () => _navigateTo(4),
             ),
+            ListTile(leading: const Icon(Icons.person_add), title: const Text("Add Employee"), onTap: () => _navigateTo(5)),
+            ListTile(leading: const Icon(Icons.edit), title: const Text("Edit Company"), onTap: () => _navigateTo(6)),
+
+
             Divider(),
             ListTile(
               leading: Icon(Icons.logout),
@@ -210,6 +218,8 @@ class _HomePageState extends State<HomePage> {
           EmployeeProfileScreen(),
           ProfileScreen(),
           VacationRequestScreen(),
+          AddEmployeeScreen(),
+          EditCompanyScreen(),
         ],
       ),
     );
@@ -228,6 +238,10 @@ class _HomePageState extends State<HomePage> {
         return "Profile";
       case 4:
         return "Vacation Request";
+      case 5:
+        return "Add Employee";
+      case 6:
+        return "Edit Company";
       default:
         return "Home";
     }

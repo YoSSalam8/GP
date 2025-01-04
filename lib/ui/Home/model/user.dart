@@ -7,5 +7,7 @@ class User{
   static String password = " ";
   static String profilePicLink = " ";
   static bool canEdit = true;
-
+  static String phoneNumber = ""; // Add this field
+  static String address = ""; // Add this field
 }
+
