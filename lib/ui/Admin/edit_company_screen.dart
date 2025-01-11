@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class EditCompanyScreen extends StatefulWidget {
-  const EditCompanyScreen({super.key});
+  final String companyId; // Add companyId
+  const EditCompanyScreen({super.key, required this.companyId});
 
   @override
   State<EditCompanyScreen> createState() => _EditCompanyScreenState();
@@ -13,6 +14,8 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
   bool isLoading = true;
   String companyName = '';
   String creatorEmail = '';
+  String workStartTime = '';
+  String workEndTime = '';
   List<String> emailDomains = [];
   List<Map<String, String>> countryTaxCodes = [];
   List<Map<String, dynamic>> departments = [];
@@ -51,7 +54,7 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
   }
 
   Future<void> _fetchCompanyDetails() async {
-    const String apiUrl = 'http://localhost:8080/api/companies/1';
+    final String apiUrl = 'http://localhost:8080/api/companies/${widget.companyId}';
     try {
       final response = await http.get(Uri.parse(apiUrl));
       if (response.statusCode == 200) {
@@ -59,25 +62,26 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
         setState(() {
           companyName = data['name'] ?? '';
           creatorEmail = data['creatorEmail'] ?? '';
+          workStartTime = data['workStartTime'] ?? '';
+          workEndTime = data['workEndTime'] ?? '';
           emailDomains = List<String>.from(data['emailDomains'] ?? []);
-
-          // Parse `countryTaxCodes`
           countryTaxCodes = List<Map<String, String>>.from(
             (data['countryTaxCodes'] ?? []).map((e) => {
               "countryName": e['countryName']?.toString() ?? '',
               "taxCode": e['taxCode']?.toString() ?? '',
             }),
           );
-
-          // Parse `departments` and `workTitles`
           departments = List<Map<String, dynamic>>.from(
             (data['departments'] ?? []).map((department) => {
               "id": department['id'],
               "name": department['name']?.toString() ?? '',
               "workTitles": List<Map<String, dynamic>>.from(
                 (department['workTitles'] ?? []).map((workTitle) => {
+                  "id": workTitle['id'],
                   "name": workTitle['name']?.toString() ?? '',
-                  "authorities": List<int>.from(workTitle['authorities'] ?? []),
+                  "authorities": List<int>.from(
+                    (workTitle['authorities'] ?? []).map((auth) => auth['id']),
+                  ),
                 }),
               ),
             }),
@@ -93,6 +97,57 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
       });
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
+  }
+
+  Future<void> _updateCompanyDetails() async {
+    final String apiUrl = 'http://localhost:8080/api/companies/${widget.companyId}';
+    try {
+      final body = jsonEncode({
+        "name": companyName,
+        "creatorEmail": creatorEmail,
+        "emailDomains": emailDomains,
+        "countryTaxCodes": countryTaxCodes.map((tax) => tax["taxCode"]).toList(),
+        "workStartTime": workStartTime,
+        "workEndTime": workEndTime,
+        "departments": departments.map((department) {
+          return {
+            "id": department["id"], // Send `null` if new department.
+            "name": department["name"],
+            "workTitles": department["workTitles"].map((workTitle) {
+              return {
+                "id": workTitle["id"], // Send `null` if new work title.
+                "name": workTitle["name"],
+                "authorityIds": workTitle["authorities"] ?? [],
+              };
+            }).toList(),
+          };
+        }).toList(),
+      });
+
+      final response = await http.put(
+        Uri.parse(apiUrl),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: body,
+      );
+
+      if (response.statusCode == 200) {
+        await _fetchCompanyDetails(); // Refresh to get updated data from the backend.
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Company details updated successfully!')),
+        );
+      } else {
+        throw Exception('Failed to update company details. Error: ${response.body}');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+
+  void _saveChanges() {
+    _updateCompanyDetails();
   }
 
   @override
@@ -113,17 +168,18 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
           padding: EdgeInsets.symmetric(horizontal: isWeb ? 32 : 16, vertical: 20),
           child: ListView(
             children: [
-              TextFormField(
-                initialValue: companyName,
-                decoration: const InputDecoration(labelText: "Company Name"),
-                onChanged: (value) => setState(() => companyName = value),
+              const Text(
+                "Company Details",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                initialValue: creatorEmail,
-                decoration: const InputDecoration(labelText: "Creator Email"),
-                onChanged: (value) => setState(() => creatorEmail = value),
-              ),
+              _buildUneditableField("Company Name", companyName),
+              const SizedBox(height: 16),
+              _buildUneditableField("Creator Email", creatorEmail),
+              const SizedBox(height: 16),
+              _buildUneditableField("Work Start Time", workStartTime),
+              const SizedBox(height: 16),
+              _buildUneditableField("Work End Time", workEndTime),
               const SizedBox(height: 16),
               _buildSection("Email Domains", emailDomains, "Enter new domain",
                       (value) => setState(() => emailDomains.add(value))),
@@ -153,6 +209,20 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
     );
   }
 
+  Widget _buildUneditableField(String label, String value) {
+    return TextFormField(
+      initialValue: value,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        filled: true,
+        fillColor: Colors.grey.shade200,
+      ),
+      readOnly: true,
+      style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+    );
+  }
+
   Widget _buildSection(String title, List<String> list, String hint, Function(String) onAdd) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -169,11 +239,7 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
             const Divider(thickness: 1.2),
             const SizedBox(height: 8),
             Column(
-              children: list
-                  .map((value) => ListTile(
-                title: Text(value),
-              ))
-                  .toList(),
+              children: list.map((value) => ListTile(title: Text(value))).toList(),
             ),
             const SizedBox(height: 10),
             TextField(
@@ -269,8 +335,12 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
                         TextFormField(
                           initialValue: department["name"],
                           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                          onFieldSubmitted: (newValue) =>
-                              setState(() => department["name"] = newValue),
+                          onFieldSubmitted: (newValue) {
+                            setState(() {
+                              department["name"] = newValue;
+                            });
+                            _updateCompanyDetails(); // Update after editing department name.
+                          },
                         ),
                         const SizedBox(height: 8),
                         const Text(
@@ -293,6 +363,7 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
                                         setState(() {
                                           workTitle["name"] = newValue;
                                         });
+                                        _updateCompanyDetails(); // Update after editing work title name.
                                       },
                                     ),
                                   ),
@@ -313,8 +384,9 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
                           decoration: const InputDecoration(labelText: "Add Work Title"),
                           onSubmitted: (value) {
                             setState(() {
-                              department["workTitles"].add({"name": value, "authorities": []});
+                              department["workTitles"].add({"id": null, "name": value, "authorities": []});
                             });
+                            _updateCompanyDetails(); // Update after adding work title.
                           },
                         ),
                       ],
@@ -329,10 +401,12 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
               onSubmitted: (value) {
                 setState(() {
                   departments.add({
+                    "id": null, // `null` for new department.
                     "name": value,
                     "workTitles": [],
                   });
                 });
+                _updateCompanyDetails(); // Update after adding department.
               },
             ),
           ],
@@ -468,12 +542,6 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
           ),
         );
       },
-    );
-  }
-
-  void _saveChanges() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Company details updated successfully!")),
     );
   }
 }

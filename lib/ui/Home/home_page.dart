@@ -41,31 +41,25 @@ class _HomePageState extends State<HomePage> {
   }
   void decodeAndPrintToken(String token) {
     try {
-      // Split the token into parts (header, payload, signature)
       final parts = token.split('.');
       if (parts.length != 3) {
         throw Exception("Invalid token");
       }
 
-      // Decode the payload (Base64-decoded)
       final String payloadBase64 = parts[1];
       final String normalizedPayload = base64.normalize(payloadBase64);
       final String decodedPayload = utf8.decode(base64Url.decode(normalizedPayload));
-
-      // Convert JSON string to a Dart Map
       final Map<String, dynamic> payloadMap = jsonDecode(decodedPayload);
 
-      // Print the decoded token contents
-      print("Decoded JWT Payload: $payloadMap");
-      print("Company ID: ${payloadMap['companyId']}");
-      print("Email (sub): ${payloadMap['sub']}");
-      print("Issued At (iat): ${payloadMap['iat']}");
-      print("Expiration (exp): ${payloadMap['exp']}");
+      setState(() {
+        id = payloadMap['companyId'].toString(); // Extract companyId
+      });
 
     } catch (e) {
       print("Error decoding token: $e");
     }
   }
+
   // Method to handle logout
   void _showLogoutDialog() {
     double screenWidth = MediaQuery.of(context).size.width;
@@ -232,8 +226,19 @@ class _HomePageState extends State<HomePage> {
               onTap: () => _navigateTo(4),
             ),
             ListTile(leading: const Icon(Icons.person_add), title: const Text("Add Employee"), onTap: () => _navigateTo(5)),
-            ListTile(leading: const Icon(Icons.edit), title: const Text("Edit Company"), onTap: () => _navigateTo(6)),
             ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text("Edit Company"),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditCompanyScreen(companyId: id), // Pass companyId
+                  ),
+                );
+              },
+            ),            ListTile(
               leading: const Icon(Icons.announcement),
               title: const Text("Announcements"),
               onTap: () => _navigateTo(7), // Add a new index for Announcements
@@ -262,14 +267,14 @@ class _HomePageState extends State<HomePage> {
 
       body: IndexedStack(
         index: currentIndex,
-        children: const [
+        children:  [
           TodayScreen(),
           CalendarScreen(),
           EmployeeProfileScreen(),
           ProfileScreen(),
           VacationRequestScreen(),
-          AddEmployeeScreen(),
-          EditCompanyScreen(),
+          AddEmployeeScreen(companyId: id),
+          EditCompanyScreen(companyId: id),
           AnnouncementsScreen(),
           CreateAnnouncementScreen(),
           DepartmentTreeScreen(),

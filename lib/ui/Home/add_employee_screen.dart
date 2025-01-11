@@ -1,43 +1,118 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class AddEmployeeScreen extends StatefulWidget {
-  const AddEmployeeScreen({super.key});
+  final String companyId; // Receive company ID
+  const AddEmployeeScreen({super.key, required this.companyId});
 
   @override
   State<AddEmployeeScreen> createState() => _AddEmployeeScreenState();
 }
 
-class _AddEmployeeScreenState extends State<AddEmployeeScreen> with SingleTickerProviderStateMixin {
+class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
   final TextEditingController firstNameController = TextEditingController();
   final TextEditingController lastNameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
-  final TextEditingController employeeIdController = TextEditingController(); // New input for Employee ID
-  String? selectedDepartment;
-  String? selectedWorkTitle;
+  final TextEditingController phoneNumberController = TextEditingController();
+  final TextEditingController employeeIdController = TextEditingController();
+  final TextEditingController salaryController = TextEditingController();
 
-  final List<String> departments = ["Human Resources", "Finance", "IT", "Marketing"];
-  final List<String> workTitles = ["Manager", "Engineer", "Assistant", "Intern"];
+  List<Map<String, dynamic>> departments = []; // List of departments
+  List<Map<String, dynamic>> workTitles = []; // List of work titles for the selected department
+  String? selectedDepartmentId;
+  String? selectedWorkTitleId;
+  String? selectedWorkTime; // Work time selection
 
-  late AnimationController _animationController;
-  late Animation<Offset> _slideAnimation;
+  final List<String> workTimeOptions = ["SUNDAY_TO_THURSDAY", "MONDAY_TO_FRIDAY"];
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    _slideAnimation = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
-    _animationController.forward(); // Start the animation when the screen opens
+    _fetchCompanyDetails(); // Fetch company details on screen load
   }
 
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
+  Future<void> _fetchCompanyDetails() async {
+    final url = 'http://localhost:8080/api/companies/${widget.companyId}';
+
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        setState(() {
+          // Extract departments and explicitly convert workTitles to List<Map<String, dynamic>>
+          departments = (data["departments"] as List).map((dept) {
+            return {
+              "id": dept["id"],
+              "name": dept["name"],
+              "workTitles": (dept["workTitles"] as List)
+                  .map((workTitle) => {
+                "id": workTitle["id"],
+                "name": workTitle["name"],
+                "authorityIds": workTitle["authorityIds"] ?? [],
+              })
+                  .toList(),
+            };
+          }).toList();
+        });
+      } else {
+        throw Exception('Failed to load company details. Error: ${response.body}');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+
+  void _onDepartmentSelected(String? departmentName) {
+    setState(() {
+      final selectedDepartment = departments.firstWhere((dept) => dept["name"] == departmentName);
+      selectedDepartmentId = selectedDepartment["id"].toString();
+      workTitles = selectedDepartment["workTitles"]; // Update work titles for the selected department
+      selectedWorkTitleId = null; // Clear selected work title
+    });
+  }
+
+  Future<void> _addEmployee() async {
+    final url = 'http://localhost:8080/api/employees/invite/${widget.companyId}';
+    final employeeId = int.tryParse(employeeIdController.text);
+    final salary = double.tryParse(salaryController.text);
+
+    if (employeeId == null || salary == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter valid numeric values for Employee ID and Salary.')),
+      );
+      return;
+    }
+
+    final requestBody = {
+      "id": employeeId,
+      "email": emailController.text.trim(),
+      "name": "${firstNameController.text.trim()} ${lastNameController.text.trim()}",
+      "departmentId": int.parse(selectedDepartmentId!),
+      "workTitleId": int.parse(selectedWorkTitleId!),
+      "salary": salary,
+      "workScheduleType": selectedWorkTime,
+    };
+
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(requestBody),
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        _showConfirmationDialog();
+      } else {
+        throw Exception('Failed to add employee. Error: ${response.body}');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
   }
 
   @override
@@ -57,72 +132,79 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> with SingleTicker
         child: Center(
           child: SingleChildScrollView(
             padding: EdgeInsets.symmetric(horizontal: isWeb ? screenWidth * 0.2 : 16, vertical: 20),
-            child: SlideTransition(
-              position: _slideAnimation,
-              child: Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                elevation: 8,
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Center(
-                        child: Text(
-                          "Add New Employee",
-                          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF133E87)),
+            child: Card(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              elevation: 8,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Center(
+                      child: Text(
+                        "Add New Employee",
+                        style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF133E87)),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    _buildTextField("Employee ID", employeeIdController, Icons.badge, "Enter the employee's unique ID."),
+                    const SizedBox(height: 16),
+                    _buildTextField("First Name", firstNameController, Icons.person, "Enter the employee's first name."),
+                    const SizedBox(height: 16),
+                    _buildTextField("Last Name", lastNameController, Icons.person_outline, "Enter the employee's last name."),
+                    const SizedBox(height: 16),
+                    _buildTextField("Email", emailController, Icons.email, "Enter a valid email address."),
+                    const SizedBox(height: 16),
+                    _buildTextField("Phone Number", phoneNumberController, Icons.phone, "Enter the employee's phone number."),
+                    const SizedBox(height: 16),
+                    _buildTextField("Salary", salaryController, Icons.money, "Enter the employee's salary."),
+                    const SizedBox(height: 16),
+                    _buildDropdown(
+                      "Select Department",
+                      departments.map((d) => d["name"] as String).toList(),
+                      Icons.apartment,
+                      _onDepartmentSelected,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildWorkTitleDropdown(), // Separate work title dropdown widget
+                    const SizedBox(height: 16),
+                    _buildDropdown("Select Work Time", workTimeOptions, Icons.calendar_today, (value) {
+                      setState(() {
+                        selectedWorkTime = value;
+                      });
+                    }),
+                    const SizedBox(height: 24),
+                    Center(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF133E87),
+                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 40),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: () {
+                          if (employeeIdController.text.isEmpty ||
+                              firstNameController.text.isEmpty ||
+                              lastNameController.text.isEmpty ||
+                              emailController.text.isEmpty ||
+                              phoneNumberController.text.isEmpty ||
+                              salaryController.text.isEmpty ||
+                              selectedDepartmentId == null ||
+                              selectedWorkTitleId == null ||
+                              selectedWorkTime == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Please fill all fields before submitting.")),
+                            );
+                          } else {
+                            _addEmployee();
+                          }
+                        },
+                        child: const Text(
+                          "Add Employee",
+                          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      _buildTextField("Employee ID", employeeIdController, Icons.badge, "Enter the employee's unique ID."), // New Employee ID input
-                      const SizedBox(height: 16),
-                      _buildTextField("First Name", firstNameController, Icons.person, "Enter the employee's first name."),
-                      const SizedBox(height: 16), // Small space between fields
-                      _buildTextField("Last Name", lastNameController, Icons.person_outline, "Enter the employee's last name."),
-                      const SizedBox(height: 16),
-                      _buildTextField("Email", emailController, Icons.email, "Enter a valid email address."),
-                      const SizedBox(height: 16),
-                      _buildDropdown("Select Department", departments, Icons.apartment, (value) {
-                        setState(() {
-                          selectedDepartment = value;
-                        });
-                      }),
-                      const SizedBox(height: 16),
-                      _buildDropdown("Select Work Title", workTitles, Icons.work, (value) {
-                        setState(() {
-                          selectedWorkTitle = value;
-                        });
-                      }),
-                      const SizedBox(height: 24), // Larger space before the button
-                      Center(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF133E87),
-                            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 40),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                          onPressed: () {
-                            if (employeeIdController.text.isEmpty ||
-                                firstNameController.text.isEmpty ||
-                                lastNameController.text.isEmpty ||
-                                emailController.text.isEmpty ||
-                                selectedDepartment == null ||
-                                selectedWorkTitle == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text("Please fill all fields before submitting.")),
-                              );
-                            } else {
-                              _showConfirmationDialog();
-                            }
-                          },
-                          child: const Text(
-                            "Add Employee",
-                            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -135,6 +217,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> with SingleTicker
   Widget _buildTextField(String label, TextEditingController controller, IconData icon, String helperText) {
     return TextField(
       controller: controller,
+      keyboardType: label == "Phone Number" || label == "Salary" ? TextInputType.number : TextInputType.text,
       decoration: InputDecoration(
         labelText: label,
         helperText: helperText,
@@ -169,7 +252,38 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> with SingleTicker
     );
   }
 
-  // Confirmation dialog
+  Widget _buildWorkTitleDropdown() {
+    return DropdownButtonFormField<String>(
+      decoration: InputDecoration(
+        labelText: "Select Work Title",
+        prefixIcon: Icon(Icons.work, color: const Color(0xFF133E87)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        filled: true,
+        fillColor: Colors.grey.shade100,
+      ),
+      hint: const Text("Select Work Title"),
+      value: selectedWorkTitleId != null
+          ? workTitles.firstWhere((t) => t["id"].toString() == selectedWorkTitleId)["name"] as String
+          : null,
+      isExpanded: true,
+      items: workTitles.isNotEmpty
+          ? workTitles.map((workTitle) {
+        return DropdownMenuItem<String>(
+          value: workTitle["name"],
+          child: Text(workTitle["name"]),
+        );
+      }).toList()
+          : [],
+      onChanged: workTitles.isEmpty
+          ? null // Disable the dropdown if there are no work titles
+          : (value) {
+        setState(() {
+          selectedWorkTitleId = workTitles.firstWhere((t) => t["name"] == value)["id"].toString();
+        });
+      },
+    );
+  }
+
   void _showConfirmationDialog() {
     showDialog(
       context: context,
@@ -214,14 +328,17 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> with SingleTicker
     );
   }
 
-  // Clear fields after successful submission
   void _clearFields() {
-    employeeIdController.clear(); // Clear Employee ID
+    employeeIdController.clear();
     firstNameController.clear();
     lastNameController.clear();
     emailController.clear();
-    selectedDepartment = null;
-    selectedWorkTitle = null;
+    phoneNumberController.clear();
+    salaryController.clear();
+    selectedDepartmentId = null;
+    selectedWorkTitleId = null;
+    selectedWorkTime = null;
+    workTitles = [];
     setState(() {});
   }
 }

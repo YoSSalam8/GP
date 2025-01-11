@@ -20,6 +20,8 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
   List<String> selectedCountries = [];
   List<String> taxCodeIds = []; // Changed to List<String> for better formatting
   List<Map<String, dynamic>> departments = [];
+  String workStartTime = "09:00:00"; // Default start time
+  String workEndTime = "18:00:00"; // Default end time
 
   final List<Map<String, dynamic>> authorities = [
     {"id": 1, "name": "EDIT_PERSONAL_DETAILS"},
@@ -118,12 +120,12 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        showSuccessDialog(context); // Show success popup
+        showSuccessDialog(context);
       } else {
-        showErrorDialog(context, response.body); // Show error message
+        showErrorDialog(context, response.body);
       }
     } catch (error) {
-      showErrorDialog(context, error.toString()); // Show error message
+      showErrorDialog(context, error.toString());
     }
   }
 
@@ -151,16 +153,10 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context); // Close the dialog
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const Login()),
-                  );
+                  Navigator.pop(context);
+                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const Login()));
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
                 child: const Text("OK"),
               ),
             ],
@@ -181,25 +177,15 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
             children: [
               const Icon(Icons.error, color: Colors.red, size: 80),
               const SizedBox(height: 20),
-              const Text(
-                "Error",
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
+              const Text("Error", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16),
-              ),
+              Text(message, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16)),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context); // Close the dialog
+                  Navigator.pop(context);
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
                 child: const Text("OK"),
               ),
             ],
@@ -270,13 +256,13 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
                     ElevatedButton(
                       onPressed: () {
                         if (currentStage == 2) {
-                          final Map<String, dynamic> requestPayload = {
+                          final requestPayload = {
                             "name": companyName,
                             "creatorEmail": creatorEmail,
                             "emailDomains": emailDomains,
-                            "countryTaxCode": selectedCountries.map((country) {
-                              return "${country}: ${countryTaxCodes[country] ?? ''}";
-                            }).toList(),
+                            "countryTaxCode": taxCodeIds,
+                            "workStartTime": workStartTime,
+                            "workEndTime": workEndTime,
                             "departments": departments.map((department) {
                               return {
                                 "name": department["name"],
@@ -290,7 +276,7 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
                             }).toList(),
                           };
 
-                          sendRequest(context, requestPayload); // Send the request
+                          sendRequest(context, requestPayload);
                         } else {
                           nextStage();
                         }
@@ -361,6 +347,53 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
             ),
             onChanged: (value) =>
             emailDomains = value.split(",").map((e) => e.trim()).toList(),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            "Company Working Hours",
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  decoration: InputDecoration(
+                    labelText: "Start Time (e.g., 09:00 AM)",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    prefixIcon: const Icon(Icons.access_time),
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      departments.forEach((department) {
+                        department["startTime"] = value; // Default for departments
+                      });
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextField(
+                  decoration: InputDecoration(
+                    labelText: "End Time (e.g., 05:00 PM)",
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    prefixIcon: const Icon(Icons.access_time_filled),
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      departments.forEach((department) {
+                        department["endTime"] = value; // Default for departments
+                      });
+                    });
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),
