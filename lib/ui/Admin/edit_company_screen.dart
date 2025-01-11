@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class EditCompanyScreen extends StatefulWidget {
   const EditCompanyScreen({super.key});
@@ -8,25 +10,12 @@ class EditCompanyScreen extends StatefulWidget {
 }
 
 class _EditCompanyScreenState extends State<EditCompanyScreen> {
-  final List<String> emailDomains = ["example.com", "company.org"];
-  final List<String> countries = ["United States", "Canada", "Germany"];
-  final List<int> taxCodes = [101, 202, 303];
-  final List<Map<String, dynamic>> departments = [
-    {
-      "name": "HR",
-      "workTitles": [
-        {"name": "Manager", "authorities": [1, 2]},
-        {"name": "Assistant", "authorities": [2]}
-      ]
-    },
-    {
-      "name": "Finance",
-      "workTitles": [
-        {"name": "Accountant", "authorities": [3, 5]},
-        {"name": "Auditor", "authorities": []}
-      ]
-    },
-  ];
+  bool isLoading = true;
+  String companyName = '';
+  String creatorEmail = '';
+  List<String> emailDomains = [];
+  List<Map<String, String>> countryTaxCodes = [];
+  List<Map<String, dynamic>> departments = [];
 
   final List<Map<String, dynamic>> authorities = [
     {"id": 1, "name": "EDIT_PERSONAL_DETAILS"},
@@ -35,24 +24,87 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
     {"id": 4, "name": "VIEW_PERSONAL_ATTENDANCE"},
     {"id": 5, "name": "ACCEPT_LEAVE_REQUEST"},
     {"id": 6, "name": "DENY_LEAVE_REQUEST"},
+    {"id": 7, "name": "APPROVE_TIMESHEET"},
+    {"id": 8, "name": "REJECT_TIMESHEET"},
+    {"id": 9, "name": "ADD_EMPLOYEE"},
+    {"id": 10, "name": "REMOVE_EMPLOYEE"},
+    {"id": 11, "name": "LOCK_EMPLOYEE"},
+    {"id": 12, "name": "UNLOCK_EMPLOYEE"},
+    {"id": 13, "name": "ADD_DEPARTMENT"},
+    {"id": 14, "name": "REMOVE_DEPARTMENT"},
+    {"id": 15, "name": "UPDATE_DEPARTMENT"},
+    {"id": 16, "name": "VIEW_COMPANY_DETAILS"},
+    {"id": 17, "name": "ADD_COUNTRIES"},
+    {"id": 18, "name": "REMOVE_COUNTRIES"},
+    {"id": 19, "name": "ADD_TAX_CODES"},
+    {"id": 20, "name": "REMOVE_TAX_CODES"},
+    {"id": 21, "name": "MANAGE_LEAVE_TYPES"},
+    {"id": 22, "name": "ACCEPT_DENY_LEAVES"},
+    {"id": 23, "name": "VIEW_PAYROLL_DETAILS"},
+    {"id": 24, "name": "EDIT_PAYROLL_DETAILS"},
   ];
 
-  void _addItem(List<dynamic> list, dynamic newItem) {
-    setState(() {
-      list.add(newItem);
-    });
+  @override
+  void initState() {
+    super.initState();
+    _fetchCompanyDetails();
   }
 
-  void _editItem(List<dynamic> list, int index, dynamic newValue) {
-    setState(() {
-      list[index] = newValue;
-    });
+  Future<void> _fetchCompanyDetails() async {
+    const String apiUrl = 'http://localhost:8080/api/companies/1';
+    try {
+      final response = await http.get(Uri.parse(apiUrl));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          companyName = data['name'] ?? '';
+          creatorEmail = data['creatorEmail'] ?? '';
+          emailDomains = List<String>.from(data['emailDomains'] ?? []);
+
+          // Parse `countryTaxCodes`
+          countryTaxCodes = List<Map<String, String>>.from(
+            (data['countryTaxCodes'] ?? []).map((e) => {
+              "countryName": e['countryName']?.toString() ?? '',
+              "taxCode": e['taxCode']?.toString() ?? '',
+            }),
+          );
+
+          // Parse `departments` and `workTitles`
+          departments = List<Map<String, dynamic>>.from(
+            (data['departments'] ?? []).map((department) => {
+              "id": department['id'],
+              "name": department['name']?.toString() ?? '',
+              "workTitles": List<Map<String, dynamic>>.from(
+                (department['workTitles'] ?? []).map((workTitle) => {
+                  "name": workTitle['name']?.toString() ?? '',
+                  "authorities": List<int>.from(workTitle['authorities'] ?? []),
+                }),
+              ),
+            }),
+          );
+          isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load company details');
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
     bool isWeb = screenWidth > 600;
+
+    if (isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       body: Center(
@@ -61,42 +113,24 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
           padding: EdgeInsets.symmetric(horizontal: isWeb ? 32 : 16, vertical: 20),
           child: ListView(
             children: [
-              const Text(
-                "Edit Company Details",
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
+              TextFormField(
+                initialValue: companyName,
+                decoration: const InputDecoration(labelText: "Company Name"),
+                onChanged: (value) => setState(() => companyName = value),
               ),
               const SizedBox(height: 16),
-              _buildSection(
-                "Email Domains",
-                emailDomains,
-                "Enter new domain",
-                    (value) => _addItem(emailDomains, value),
-                isEditable: true,
+              TextFormField(
+                initialValue: creatorEmail,
+                decoration: const InputDecoration(labelText: "Creator Email"),
+                onChanged: (value) => setState(() => creatorEmail = value),
               ),
               const SizedBox(height: 16),
-              _buildSection(
-                "Countries",
-                countries,
-                "Enter new country",
-                    (value) => _addItem(countries, value),
-                isEditable: true,
-              ),
+              _buildSection("Email Domains", emailDomains, "Enter new domain",
+                      (value) => setState(() => emailDomains.add(value))),
               const SizedBox(height: 16),
-              _buildSection(
-                "Tax Codes",
-                taxCodes.map((e) => e.toString()).toList(),
-                "Enter new tax code",
-                    (value) {
-                  int? parsedValue = int.tryParse(value);
-                  if (parsedValue != null) {
-                    _addItem(taxCodes, parsedValue);
-                  }
-                },
-                isEditable: true,
-              ),
+              _buildCountryTaxCodeSection(),
               const SizedBox(height: 16),
-              _buildDepartmentSection(isWeb),
+              _buildDepartmentSection(),
               const SizedBox(height: 20),
               Center(
                 child: ElevatedButton(
@@ -105,11 +139,7 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
                     backgroundColor: const Color(0xFF133E87),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Company details updated successfully!")),
-                    );
-                  },
+                  onPressed: _saveChanges,
                   child: const Text(
                     "Save Changes",
                     style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
@@ -123,9 +153,7 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
     );
   }
 
-  Widget _buildSection(
-      String title, List<String> list, String hint, Function(String) onAdd,
-      {required bool isEditable}) {
+  Widget _buildSection(String title, List<String> list, String hint, Function(String) onAdd) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       elevation: 5,
@@ -140,20 +168,13 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
             ),
             const Divider(thickness: 1.2),
             const SizedBox(height: 8),
-            ...list.asMap().entries.map((entry) {
-              int index = entry.key;
-              String value = entry.value;
-              return ListTile(
-                title: isEditable
-                    ? TextFormField(
-                  initialValue: value,
-                  decoration: const InputDecoration(border: InputBorder.none),
-                  style: const TextStyle(fontSize: 16),
-                  onFieldSubmitted: (newValue) => _editItem(list, index, newValue),
-                )
-                    : Text(value),
-              );
-            }).toList(),
+            Column(
+              children: list
+                  .map((value) => ListTile(
+                title: Text(value),
+              ))
+                  .toList(),
+            ),
             const SizedBox(height: 10),
             TextField(
               decoration: InputDecoration(
@@ -174,7 +195,51 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
     );
   }
 
-  Widget _buildDepartmentSection(bool isWeb) {
+  Widget _buildCountryTaxCodeSection() {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      elevation: 5,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Country Tax Codes",
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const Divider(thickness: 1.2),
+            const SizedBox(height: 8),
+            countryTaxCodes.isEmpty
+                ? const Text('No tax codes available.')
+                : Column(
+              children: countryTaxCodes
+                  .map((taxCode) => ListTile(
+                title: Text("${taxCode["countryName"]}: ${taxCode["taxCode"]}"),
+              ))
+                  .toList(),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              decoration: const InputDecoration(
+                hintText: "Enter new country and tax code (format: Country:TaxCode)",
+              ),
+              onSubmitted: (value) {
+                List<String> parts = value.split(":");
+                if (parts.length == 2) {
+                  setState(() {
+                    countryTaxCodes.add({"countryName": parts[0].trim(), "taxCode": parts[1].trim()});
+                  });
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDepartmentSection() {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       elevation: 5,
@@ -189,82 +254,87 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
             ),
             const Divider(thickness: 1.2),
             const SizedBox(height: 8),
-            ...departments.asMap().entries.map((entry) {
-              int index = entry.key;
-              Map<String, dynamic> department = entry.value;
-              return Card(
-                elevation: 3,
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              initialValue: department["name"],
-                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                              onFieldSubmitted: (newValue) {
-                                setState(() {
-                                  department["name"] = newValue;
-                                });
-                              },
+            departments.isEmpty
+                ? const Text('No departments available.')
+                : Column(
+              children: departments.map((department) {
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TextFormField(
+                          initialValue: department["name"],
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          onFieldSubmitted: (newValue) =>
+                              setState(() => department["name"] = newValue),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          "Work Titles:",
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        department["workTitles"].isEmpty
+                            ? const Text('No work titles available.')
+                            : Column(
+                          children: department["workTitles"]
+                              .map<Widget>(
+                                (workTitle) => ListTile(
+                              title: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: TextFormField(
+                                      initialValue: workTitle["name"],
+                                      onFieldSubmitted: (newValue) {
+                                        setState(() {
+                                          workTitle["name"] = newValue;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.settings, color: Colors.blue),
+                                    onPressed: () {
+                                      _showAuthorityDialog(context, workTitle);
+                                    },
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        "Work Titles:",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      ...department["workTitles"].asMap().entries.map((workEntry) {
-                        int workIndex = workEntry.key;
-                        Map<String, dynamic> workTitle = workEntry.value;
-
-                        return ListTile(
-                          title: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  initialValue: workTitle["name"],
-                                  onFieldSubmitted: (newValue) {
-                                    setState(() {
-                                      workTitle["name"] = newValue;
-                                    });
-                                  },
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.settings, color: Colors.blue),
-                                onPressed: () {
-                                  _showAuthorityDialog(context, workTitle);
-                                },
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                      const SizedBox(height: 10),
-                      TextField(
-                        decoration: const InputDecoration(labelText: "Add Work Title"),
-                        onSubmitted: (value) {
-                          setState(() {
-                            department["workTitles"].add({"name": value, "authorities": []});
-                          });
-                        },
-                      ),
-                    ],
+                          )
+                              .toList(),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          decoration: const InputDecoration(labelText: "Add Work Title"),
+                          onSubmitted: (value) {
+                            setState(() {
+                              department["workTitles"].add({"name": value, "authorities": []});
+                            });
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            }).toList(),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              decoration: const InputDecoration(labelText: "Add Department"),
+              onSubmitted: (value) {
+                setState(() {
+                  departments.add({
+                    "name": value,
+                    "workTitles": [],
+                  });
+                });
+              },
+            ),
           ],
         ),
       ),
@@ -273,105 +343,137 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
 
   void _showAuthorityDialog(BuildContext context, Map<String, dynamic> workTitle) {
     List<int> selectedAuthorities = List.from(workTitle["authorities"]);
-    double screenHeight = MediaQuery.of(context).size.height;
+    bool isWeb = MediaQuery.of(context).size.width > 600; // Check if it's web
 
     showDialog(
       context: context,
       builder: (context) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: StatefulBuilder(
             builder: (BuildContext context, void Function(void Function()) setState) {
-              return Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      "Edit Authorities",
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      constraints: BoxConstraints(
-                        maxHeight: screenHeight * 0.5, // Max height to prevent overflow
+              return SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Text(
+                        "Edit Authorities",
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF133E87),
+                        ),
                       ),
-                      child: GridView.count(
-                        crossAxisCount: MediaQuery.of(context).size.width > 600 ? 3 : 2,
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                        shrinkWrap: true,
-                        children: authorities.map((auth) {
-                          bool isSelected = selectedAuthorities.contains(auth["id"]);
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                if (isSelected) {
-                                  selectedAuthorities.remove(auth["id"]);
-                                } else {
-                                  selectedAuthorities.add(auth["id"]);
-                                }
-                                workTitle["authorities"] = selectedAuthorities;
-                              });
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              decoration: BoxDecoration(
-                                color: isSelected ? Colors.blue.shade900 : Colors.grey.shade300,
-                                borderRadius: BorderRadius.circular(10),
-                                boxShadow: isSelected
-                                    ? [
-                                  const BoxShadow(
-                                    color: Colors.blue,
-                                    blurRadius: 8,
-                                    offset: Offset(0, 2),
+                      const SizedBox(height: 16),
+                      const Text(
+                        "Tap to toggle authority access",
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        constraints: BoxConstraints(
+                          maxHeight: MediaQuery.of(context).size.height * 0.4,
+                        ),
+                        child: GridView.count(
+                          crossAxisCount: isWeb ? 5 : 3, // More columns for web
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                          shrinkWrap: true,
+                          children: authorities.map((auth) {
+                            bool isSelected = selectedAuthorities.contains(auth["id"]);
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  if (isSelected) {
+                                    selectedAuthorities.remove(auth["id"]);
+                                  } else {
+                                    selectedAuthorities.add(auth["id"]);
+                                  }
+                                  workTitle["authorities"] = selectedAuthorities;
+                                });
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 300),
+                                padding: const EdgeInsets.all(4), // Smaller padding for web
+                                height: isWeb ? 30 : 50, // Smaller height for web
+                                width: isWeb ? 60 : 100, // Smaller width for web
+                                decoration: BoxDecoration(
+                                  gradient: isSelected
+                                      ? const LinearGradient(
+                                    colors: [Color(0xFF133E87), Color(0xFF608BC1)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
                                   )
-                                ]
-                                    : [],
-                              ),
-                              padding: const EdgeInsets.all(8),
-                              child: Center(
-                                child: Text(
-                                  auth["name"],
-                                  style: TextStyle(
-                                    color: isSelected ? Colors.white : Colors.black87,
-                                    fontWeight: FontWeight.bold,
+                                      : const LinearGradient(
+                                    colors: [Colors.white, Colors.white],
                                   ),
-                                  textAlign: TextAlign.center,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: isSelected ? Colors.blue : Colors.grey.shade300,
+                                    width: 1.5,
+                                  ),
+                                  boxShadow: isSelected
+                                      ? [
+                                    BoxShadow(
+                                      color: Colors.blue.withOpacity(0.4),
+                                      blurRadius: 6,
+                                      spreadRadius: 1,
+                                    ),
+                                  ]
+                                      : [],
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    auth["name"],
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: isSelected ? Colors.white : Colors.black87,
+                                      fontSize: isWeb ? 15 : 12, // Smaller font size for web
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 150,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue.shade900,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text("Close", style: TextStyle(color: Colors.white)),
-                          ),
+                            );
+                          }).toList(),
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close, color: Colors.white),
+                            label: const Text("Close"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF133E87),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
           ),
         );
       },
+    );
+  }
+
+  void _saveChanges() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Company details updated successfully!")),
     );
   }
 }

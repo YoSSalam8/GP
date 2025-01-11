@@ -18,7 +18,7 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
   String companyName = "";
   List<String> emailDomains = [];
   List<String> selectedCountries = [];
-  List<int> taxCodeIds = [];
+  List<String> taxCodeIds = []; // Changed to List<String> for better formatting
   List<Map<String, dynamic>> departments = [];
 
   final List<Map<String, dynamic>> authorities = [
@@ -49,17 +49,27 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
   ];
 
   final List<String> countries = [
-    'United States',
+    'Australia',
     'Canada',
     'Germany',
     'France',
     'United Kingdom',
-    'China',
     'India',
-    'Australia',
-    'Brazil',
     'Japan',
+    'United States',
   ];
+
+  // Mapping between countries and their tax codes
+  final Map<String, String> countryTaxCodes = {
+    'Australia': 'AU505',
+    'Canada': 'CA456',
+    'Germany': 'DE202',
+    'France': 'FR303',
+    'United Kingdom': 'UK789',
+    'India': 'IN101',
+    'Japan': 'JP404',
+    'United States': 'US123',
+  };
 
   void nextStage() {
     setState(() {
@@ -98,7 +108,7 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
   }
 
   void sendRequest(BuildContext context, Map<String, dynamic> requestPayload) async {
-    const String url = "http://192.168.1.125:8080/api/companies/create-structure";
+    const String url = "http://localhost:8080/api/companies/create-structure";
 
     try {
       final response = await http.post(
@@ -264,11 +274,9 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
                             "name": companyName,
                             "creatorEmail": creatorEmail,
                             "emailDomains": emailDomains,
-                            "countryTaxCode": selectedCountries
-                                .asMap()
-                                .entries
-                                .map((entry) => "${entry.value}${taxCodeIds.length > entry.key ? taxCodeIds[entry.key] : ""}")
-                                .toList(),
+                            "countryTaxCode": selectedCountries.map((country) {
+                              return "${country}: ${countryTaxCodes[country] ?? ''}";
+                            }).toList(),
                             "departments": departments.map((department) {
                               return {
                                 "name": department["name"],
@@ -372,17 +380,21 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
           ),
           const SizedBox(height: 20),
           DropdownButtonFormField<String>(
-            items: countries
-                .map((country) => DropdownMenuItem(
-              value: country,
-              child: Text(country),
-            ))
-                .toList(),
+            items: countries.map((country) {
+              return DropdownMenuItem(
+                value: country,
+                child: Text(country),
+              );
+            }).toList(),
             onChanged: (value) {
               if (value != null) {
                 setState(() {
                   if (!selectedCountries.contains(value)) {
                     selectedCountries.add(value);
+                    final taxCode = countryTaxCodes[value];
+                    if (taxCode != null) {
+                      taxCodeIds.add(taxCode); // Add tax code directly
+                    }
                   }
                 });
               }
@@ -400,27 +412,17 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
             spacing: 5,
             children: selectedCountries
                 .map((country) => Chip(
-              label: Text(country),
+              label: Text("$country - ${countryTaxCodes[country] ?? ''}"),
               deleteIcon: const Icon(Icons.cancel),
               onDeleted: () {
                 setState(() {
-                  selectedCountries.remove(country);
+                  int index = selectedCountries.indexOf(country);
+                  selectedCountries.removeAt(index);
+                  taxCodeIds.removeAt(index);
                 });
               },
             ))
                 .toList(),
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            decoration: InputDecoration(
-              labelText: "Tax Code IDs (comma-separated)",
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              prefixIcon: const Icon(Icons.code),
-            ),
-            onChanged: (value) => taxCodeIds =
-                value.split(",").map((e) => int.tryParse(e.trim()) ?? 0).toList(),
           ),
         ],
       ),

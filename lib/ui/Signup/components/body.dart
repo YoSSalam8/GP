@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:graduation_project/ui/Admin/admin_home.dart';
-import 'package:graduation_project/ui/Login/components/already_have_an_account_check.dart';
-import 'package:graduation_project/ui/Login/components/rounded_button.dart';
 import 'package:graduation_project/ui/Login/components/rounded_input_field.dart';
-import 'package:graduation_project/ui/Login/components/rounded_password_field.dart';
-import 'package:graduation_project/ui/Login/login_page.dart';
-import 'package:graduation_project/ui/Signup/components/background.dart';
 
 class MultiStageSignUp extends StatefulWidget {
   const MultiStageSignUp({super.key});
@@ -17,11 +12,15 @@ class MultiStageSignUp extends StatefulWidget {
 class _MultiStageSignUpState extends State<MultiStageSignUp> {
   int currentStage = 0;
 
-  // Form data
-  String companyName = "";
-  List<String> emailDomains = [];
-  List<int> countryIds = [];
-  List<int> taxCodeIds = [];
+  // Controllers for form data
+  final TextEditingController companyNameController = TextEditingController();
+  final TextEditingController emailDomainsController = TextEditingController();
+  final TextEditingController countryIdsController = TextEditingController();
+  final TextEditingController taxCodeIdsController = TextEditingController();
+  final TextEditingController departmentNameController = TextEditingController();
+  final TextEditingController workTitleNameController = TextEditingController();
+  final TextEditingController authorityIdsController = TextEditingController();
+
   List<Map<String, dynamic>> departments = [];
 
   void nextStage() {
@@ -71,10 +70,19 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
                       if (currentStage == 2) {
                         // Final submission logic
                         print({
-                          "name": companyName,
-                          "emailDomains": emailDomains,
-                          "countryIds": countryIds,
-                          "taxCodeIds": taxCodeIds,
+                          "name": companyNameController.text.trim(),
+                          "emailDomains": emailDomainsController.text
+                              .split(',')
+                              .map((e) => e.trim())
+                              .toList(),
+                          "countryIds": countryIdsController.text
+                              .split(',')
+                              .map((e) => int.tryParse(e.trim()) ?? 0)
+                              .toList(),
+                          "taxCodeIds": taxCodeIdsController.text
+                              .split(',')
+                              .map((e) => int.tryParse(e.trim()) ?? 0)
+                              .toList(),
                           "departments": departments,
                         });
                       } else {
@@ -101,15 +109,13 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
         ),
         RoundedInputField(
           hintText: "Company Name",
-          onChanged: (value) {
-            companyName = value;
-          },
+          controller: companyNameController,
+          onChanged: (value) {},
         ),
         RoundedInputField(
           hintText: "Email Domains (comma-separated)",
-          onChanged: (value) {
-            emailDomains = value.split(",").map((e) => e.trim()).toList();
-          },
+          controller: emailDomainsController,
+          onChanged: (value) {},
         ),
       ],
     );
@@ -124,15 +130,13 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
         ),
         RoundedInputField(
           hintText: "Country IDs (comma-separated)",
-          onChanged: (value) {
-            countryIds = value.split(",").map((e) => int.tryParse(e.trim()) ?? 0).toList();
-          },
+          controller: countryIdsController,
+          onChanged: (value) {},
         ),
         RoundedInputField(
           hintText: "Tax Code IDs (comma-separated)",
-          onChanged: (value) {
-            taxCodeIds = value.split(",").map((e) => int.tryParse(e.trim()) ?? 0).toList();
-          },
+          controller: taxCodeIdsController,
+          onChanged: (value) {},
         ),
       ],
     );
@@ -147,6 +151,7 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
         ),
         RoundedInputField(
           hintText: "Department Name",
+          controller: departmentNameController,
           onChanged: (value) {
             if (departments.isEmpty || departments.last["workTitles"] != null) {
               departments.add({"name": value, "workTitles": []});
@@ -157,6 +162,7 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
         ),
         RoundedInputField(
           hintText: "Work Title Name",
+          controller: workTitleNameController,
           onChanged: (value) {
             if (departments.isNotEmpty && departments.last["workTitles"] != null) {
               departments.last["workTitles"].add({"name": value, "authorityIds": []});
@@ -165,6 +171,7 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
         ),
         RoundedInputField(
           hintText: "Authority IDs (comma-separated)",
+          controller: authorityIdsController,
           onChanged: (value) {
             if (departments.isNotEmpty && departments.last["workTitles"] != null) {
               List<int> authorityIds =

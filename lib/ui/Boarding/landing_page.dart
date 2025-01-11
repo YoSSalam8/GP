@@ -2,19 +2,45 @@ import 'package:flutter/material.dart';
 import 'package:graduation_project/ui/Login/login_page.dart';
 import 'package:graduation_project/ui/Signup/signup_page.dart';
 
-class LandingPage extends StatelessWidget {
-  LandingPage({super.key});
+
+class LandingPage extends StatefulWidget {
+  const LandingPage({super.key});
+
+  @override
+  _LandingPageState createState() => _LandingPageState();
+}
+
+class _LandingPageState extends State<LandingPage> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _slideAnimation;
+  late Animation<double> _fadeAnimation;
 
   final GlobalKey aboutKey = GlobalKey();
   final GlobalKey featuresKey = GlobalKey();
   final GlobalKey footerKey = GlobalKey();
 
-  void scrollToSection(GlobalKey key, BuildContext context) {
-    Scrollable.ensureVisible(
-      key.currentContext!,
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeInOut,
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..forward();
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+    _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
     );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -29,252 +55,272 @@ class LandingPage extends StatelessWidget {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              "FUSION HR",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            SlideTransition(
+              position: _slideAnimation,
+              child: const Text(
+                "FUSION HR",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black),
+              ),
             ),
             if (isWeb)
-              Row(
-                children: [
-                  TextButton(
-                    onPressed: () => scrollToSection(aboutKey, context),
-                    child: const Text(
-                      "About",
-                      style: TextStyle(color: Colors.black, fontSize: 16),
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center, // Centering the buttons
+                  children: [
+                    TextButton(
+                      onPressed: () => scrollToSection(aboutKey, context),
+                      child: const Text("About", style: TextStyle(color: Colors.black)),
                     ),
-                  ),
-                  TextButton(
-                    onPressed: () => scrollToSection(featuresKey, context),
-                    child: const Text(
-                      "Features",
-                      style: TextStyle(color: Colors.black, fontSize: 16),
+                    const SizedBox(width: 10), // Space between the buttons
+                    TextButton(
+                      onPressed: () => scrollToSection(featuresKey, context),
+                      child: const Text("Features", style: TextStyle(color: Colors.black)),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             Row(
               children: [
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const Login()),
-                    );
+                _buildAnimatedButton(
+                  "Login",
+                      () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const Login()));
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                  child: const Text(
-                    "Login",
-                    style: TextStyle(color: Color(0xFF133E87)),
-                  ),
                 ),
                 const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const SignupPage()),
-                    );
+                _buildAnimatedButton(
+                  "Sign Up",
+                      () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => const SignupPage()));
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                  child: const Text(
-                    "Sign Up",
-                    style: TextStyle(color: Color(0xFF133E87)),
-                  ),
                 ),
               ],
             ),
           ],
         ),
+        centerTitle: false, // Ensures the title aligns left
       ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Section
-            Container(
-              height: size.height,
-              width: size.width,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF133E87), Color(0xFF608BC1)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset(
-                    'images/logo_fusion.png',
-                    height: 120,
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Welcome to Our HR Management System',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 15),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 40),
-                    child: Text(
-                      'Effortlessly manage your HR needs with core tools and add-on features.',
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: Colors.white70,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // About Section
-            Container(
-              key: aboutKey,
-              height: size.height,
-              width: size.width,
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('images/about_background.png'),
-                  fit: BoxFit.cover,
-                  opacity: 0.9,
-                ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    'About the Project',
-                    style: TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: size.width * 0.1),
-                    child: const Text(
-                      'Fusion HR is designed for companies of all sizes to streamline their HR processes. '
-                          'It integrates advanced technology with user-centric design to simplify time tracking, '
-                          'payroll management, and compliance monitoring. Our platform is robust yet easy to use, '
-                          'ensuring businesses can focus on growth while we handle their HR needs.',
-                      style: TextStyle(fontSize: 18, color: Colors.black),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: size.width * 0.1),
-                    child: const Text(
-                      'With Fusion HR, you get a suite of tools that are adaptable, reliable, and innovative. '
-                          'Whether you are managing a team of 10 or 10,000, our solutions scale with your needs. '
-                          'From employee onboarding to advanced analytics, Fusion HR covers all aspects of human '
-                          'resource management.',
-                      style: TextStyle(fontSize: 18, color: Colors.black),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Features Section
-            Container(
-              key: featuresKey,
-              height: size.height,
-              width: size.width,
-              decoration: const BoxDecoration(
-                gradient: RadialGradient(
-                  colors: [Color(0xFFF7F9FC), Color(0xFFCBDCEB)],
-                  center: Alignment.center,
-                  radius: 1.2,
-                ),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    'Key Features',
-                    style: TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF133E87),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 20),
-                  FeatureCard(
-                    title: 'Attendance and Leave Management',
-                    description:
-                    'Track employee attendance and manage leave requests efficiently with a user-friendly dashboard.',
-                    icon: Icons.access_time,
-                  ),
-                  FeatureCard(
-                    title: 'Role-Based Access Control',
-                    description:
-                    'Enhance security with customizable access permissions for employees and administrators.',
-                    icon: Icons.lock,
-                  ),
-                  FeatureCard(
-                    title: 'Payroll Management',
-                    description:
-                    'Streamline payroll processing with automated tax deductions and benefit tracking.',
-                    icon: Icons.money,
-                  ),
-                  FeatureCard(
-                    title: 'Performance Analytics',
-                    description:
-                    'Gain insights into employee performance with real-time data and actionable analytics.',
-                    icon: Icons.analytics,
-                  ),
-                  FeatureCard(
-                    title: 'Employee Self-Service',
-                    description:
-                    'Empower employees to manage their own profiles, view payslips, and request leaves.',
-                    icon: Icons.person,
-                  ),
-                ],
-              ),
-            ),
-
-            // Footer Section
-            Container(
-              key: footerKey,
-              height: 100,
-              width: size.width,
-              color: const Color(0xFF133E87),
-              child: const Center(
-                child: Text(
-                  '© 2025 HR Management System. All Rights Reserved.',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
+            _buildHeaderSection(size),
+            _buildAboutSection(size),
+            _buildFeaturesSection(size),
+            _buildFooterSection(size),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildAnimatedButton(String label, VoidCallback onPressed) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
+        child: Text(label, style: const TextStyle(color: Color(0xFF133E87))),
+      ),
+    );
+  }
+
+  Widget _buildHeaderSection(Size size) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return FadeTransition(
+          opacity: _fadeAnimation,
+          child: Container(
+            height: size.height,
+            width: size.width,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF133E87), Color(0xFF608BC1)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset('images/logo_fusion.png', height: 120),
+                const SizedBox(height: 20),
+                const AnimatedText(),
+                const SizedBox(height: 15),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 40),
+                  child: Text(
+                    'Effortlessly manage your HR needs with core tools and add-on features.',
+                    style: TextStyle(fontSize: 18, color: Colors.white70),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAboutSection(Size size) {
+    return Container(
+      key: aboutKey,
+      height: size.height,
+      width: size.width,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFE1D7B7), Color(0xFF608BC1)], // Gradient background
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.all(Radius.circular(20)), // Rounded corners
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 8,
+            offset: Offset(0, 4), // Subtle shadow for elevation effect
+          ),
+        ],
+      ),
+      child: Center(
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: size.width * 0.1),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  'About Fusion HR',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20), // Space between the heading and body text
+                const Text(
+                  'Fusion HR is designed for companies of all sizes to streamline their HR processes. '
+                      'It integrates advanced technology with user-centric design to simplify time tracking, '
+                      'payroll management, and compliance monitoring. Our platform is robust yet easy to use, '
+                      'ensuring businesses can focus on growth while we handle their HR needs.\n\n'
+                      'With Fusion HR, you get a suite of tools that are adaptable, reliable, and innovative. '
+                      'Whether you are managing a team of 10 or 10,000, our solutions scale with your needs. '
+                      'From employee onboarding to advanced analytics, Fusion HR covers all aspects of human '
+                      'resource management.',
+                  style: TextStyle(fontSize: 18, color: Colors.white),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+
+  Widget _buildFeaturesSection(Size size) {
+    return Container(
+      key: featuresKey,
+      height: size.height,
+      width: size.width,
+      decoration: const BoxDecoration(
+        gradient: RadialGradient(
+          colors: [Color(0xFFF7F9FC), Color(0xFFCBDCEB)],
+          center: Alignment.center,
+          radius: 1.2,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: const [
+          Text(
+            'Key Features',
+            style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Color(0xFF133E87)),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 20),
+          FeatureCard(
+            title: 'Attendance and Leave Management',
+            description: 'Track employee attendance and manage leave requests efficiently.',
+            icon: Icons.access_time,
+          ),
+          FeatureCard(
+            title: 'Role-Based Access Control',
+            description: 'Enhance security with customizable access permissions.',
+            icon: Icons.lock,
+          ),
+          FeatureCard(
+            title: 'Payroll Management',
+            description: 'Streamline payroll processing with automated tax deductions.',
+            icon: Icons.money,
+          ),
+          FeatureCard(
+            title: 'Performance Analytics',
+            description: 'Gain insights into employee performance with real-time data.',
+            icon: Icons.analytics,
+          ),
+          FeatureCard(
+            title: 'Employee Self-Service',
+            description: 'Empower employees to manage their own profiles and requests.',
+            icon: Icons.person,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFooterSection(Size size) {
+    return Container(
+      key: footerKey,
+      height: 100,
+      width: size.width,
+      color: const Color(0xFF133E87),
+      child: const Center(
+        child: Text(
+          '© 2025 HR Management System. All Rights Reserved.',
+          style: TextStyle(color: Colors.white, fontSize: 14),
+        ),
+      ),
+    );
+  }
+
+  void scrollToSection(GlobalKey key, BuildContext context) {
+    Scrollable.ensureVisible(
+      key.currentContext!,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+    );
+  }
+}
+
+class AnimatedText extends StatelessWidget {
+  const AnimatedText({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      duration: const Duration(seconds: 2),
+      tween: Tween<double>(begin: 0, end: 1),
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Text(
+            'Welcome to Our HR Management System',
+            style: TextStyle(fontSize: 32 * value, fontWeight: FontWeight.bold, color: Colors.white),
+            textAlign: TextAlign.center,
+          ),
+        );
+      },
     );
   }
 }
