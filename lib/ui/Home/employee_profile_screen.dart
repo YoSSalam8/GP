@@ -87,50 +87,6 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
                 ),
               ),
               const SizedBox(height: 20),
-              ScaleTransition(
-                scale: _fadeInAnimation,
-                child: _buildCreativeCardSection(
-                  title: "Job Contract Document",
-                  content: Center(
-                    child: Column(
-                      children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 500),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Colors.black26,
-                                blurRadius: 10,
-                                offset: Offset(2, 2),
-                              ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: Image.asset(
-                              'images/logo.png',
-                              fit: BoxFit.cover,
-                              width: isWeb ? screenWidth * 0.6 : screenWidth * 0.8,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        ElevatedButton.icon(
-                          onPressed: () {},
-                          icon: const Icon(Icons.download),
-                          label: const Text("Download Job Contract", style: TextStyle(color: Colors.white)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryColor,
-                            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
             ],
           ),
         ),

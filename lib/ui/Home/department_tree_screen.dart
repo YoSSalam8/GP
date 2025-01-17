@@ -1,78 +1,84 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-class DepartmentTreeScreen extends StatelessWidget {
-  const DepartmentTreeScreen({super.key});
+class DepartmentTreeScreen extends StatefulWidget {
+  final String companyId;
+
+  const DepartmentTreeScreen({super.key, required this.companyId});
+
+  @override
+  _DepartmentTreeScreenState createState() => _DepartmentTreeScreenState();
+}
+
+class _DepartmentTreeScreenState extends State<DepartmentTreeScreen> {
+  late Future<List<Map<String, dynamic>>> _departmentsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _departmentsFuture = fetchDepartments(widget.companyId);
+  }
+
+  Future<List<Map<String, dynamic>>> fetchDepartments(String companyId) async {
+    final url = Uri.parse('http://localhost:8080/api/employees/company/$companyId/employees');
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        print("Raw Response: ${response.body}"); // Debug the raw response
+
+        // Clean up the response to handle malformed JSON
+        String sanitizedBody = response.body;
+
+        // Fix cases where the response starts with unexpected characters
+        sanitizedBody = sanitizedBody.trim().replaceAll('\n', '').replaceAll('\r', '');
+
+        try {
+          // Parse the sanitized JSON
+          final data = jsonDecode(sanitizedBody) as List;
+          return data.map((department) => department as Map<String, dynamic>).toList();
+        } catch (jsonError) {
+          throw Exception('JSON Parsing Error: ${jsonError.toString()}');
+        }
+      } else {
+        throw Exception('Failed to load data: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching data: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> departments = [
-      {
-        "name": "Human Resources",
-        "workTitles": [
-          {
-            "title": "HR Manager",
-            "employees": ["Alice Johnson", "Bob Smith"]
-          },
-          {
-            "title": "HR Coordinator",
-            "employees": ["Emma Davis"]
-          },
-        ],
-      },
-      {
-        "name": "Engineering",
-        "workTitles": [
-          {
-            "title": "Software Engineer",
-            "employees": ["John Doe", "Jane Doe", "Robert Brown"]
-          },
-          {
-            "title": "System Analyst",
-            "employees": ["Samantha Lee"]
-          },
-        ],
-      },
-      {
-        "name": "Sales",
-        "workTitles": [
-          {
-            "title": "Sales Manager",
-            "employees": ["Michael Johnson"]
-          },
-          {
-            "title": "Sales Representative",
-            "employees": ["Laura Hill", "Daniel White"]
-          },
-        ],
-      },
-    ];
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("Department Tree"),
         backgroundColor: const Color(0xFF133E87),
       ),
-      body: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.grey.shade200, Colors.white],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: ListView.builder(
-          itemCount: departments.length,
-          itemBuilder: (context, index) {
-            final department = departments[index];
-            return DepartmentTile(department: department);
-          },
-        ),
-      ),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _departmentsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text("Error: ${snapshot.error}"));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text("No data available"));
+          }
 
+          final departments = snapshot.data!;
+          return ListView.builder(
+            itemCount: departments.length,
+            itemBuilder: (context, index) {
+              final department = departments[index];
+              return DepartmentTile(department: department);
+            },
+          );
+        },
+      ),
     );
   }
-
 }
 
 class DepartmentTile extends StatelessWidget {
@@ -95,14 +101,6 @@ class DepartmentTile extends StatelessWidget {
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.blue.shade50,
-              blurRadius: 10,
-              spreadRadius: 2,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
         child: Theme(
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -151,13 +149,6 @@ class WorkTitleTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.orange.shade50,
         borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.orange.shade100,
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
       ),
       child: ExpansionTile(
         leading: const Icon(Icons.work_outline_rounded, color: Colors.orange),
@@ -182,29 +173,18 @@ class WorkTitleTile extends StatelessWidget {
           ],
         ),
         children: workTitle["employees"].map<Widget>((employee) {
-          return Padding(
-            padding: const EdgeInsets.only(left: 20),
-            child: Card(
-              elevation: 5,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              child: ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: Colors.blueAccent,
-                  child: Icon(Icons.person, color: Colors.white),
-                ),
-                title: Text(
-                  employee,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    color: Colors.black87,
-                  ),
-                ),
-                subtitle: const Text(
-                  "Active",
-                  style: TextStyle(color: Colors.green),
-                ),
-                trailing: const Icon(Icons.check_circle, color: Colors.green),
-              ),
+          return ListTile(
+            leading: const CircleAvatar(
+              backgroundColor: Colors.blueAccent,
+              child: Icon(Icons.person, color: Colors.white),
+            ),
+            title: Text(
+              employee["name"],
+              style: const TextStyle(fontSize: 18, color: Colors.black87),
+            ),
+            subtitle: Text(
+              "ID: ${employee["id"]}",
+              style: const TextStyle(color: Colors.grey),
             ),
           );
         }).toList(),

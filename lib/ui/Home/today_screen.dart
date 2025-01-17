@@ -5,9 +5,13 @@ import 'package:intl/intl.dart';
 import 'package:slide_to_act/slide_to_act.dart';
 import 'attendance_data.dart'; // Import the AttendanceData class
 import 'model/user.dart'; // Import for user data with latitude and longitude
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class TodayScreen extends StatefulWidget {
-  const TodayScreen({super.key});
+  final String employeeId;
+  final String email;
+  const TodayScreen({super.key, required this.employeeId, required this.email});
 
   @override
   State<TodayScreen> createState() => _TodayScreenState();
@@ -47,6 +51,26 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _makePostRequest(String url, Map<String, dynamic> data) async {
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(data),
+      );
+
+      if (response.statusCode == 200) {
+        print('Request successful: ${response.body}');
+      } else {
+        print('Request failed: ${response.statusCode} ${response.body}');
+      }
+    } catch (e) {
+      print('Error making POST request: $e');
+    }
   }
 
   void _getLocation() async {
@@ -335,6 +359,13 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
         setState(() {
           checkIn = DateFormat('hh:mm').format(DateTime.now());
           _getLocation();
+          _makePostRequest(
+            'http://localhost:8080/api/attendance/check-in',
+            {
+              "id": widget.employeeId,
+              "email": widget.email,
+            },
+          );
         });
         checkInKey.currentState!.reset();
       },
@@ -351,16 +382,19 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
       onSubmit: () {
         setState(() {
           checkOut = DateFormat('hh:mm').format(DateTime.now());
-          AttendanceData().addRecord(
-            DateFormat('dd MMMM yyyy').format(DateTime.now()),
-            checkIn,
-            checkOut,
+          _makePostRequest(
+            'http://localhost:8080/api/attendance/check-out',
+            {
+              "id": widget.employeeId,
+              "email": widget.email,
+            },
           );
         });
         checkOutKey.currentState!.reset();
       },
     );
   }
+
 
   Widget _buildLocation(bool isWeb) {
     return Text(

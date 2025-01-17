@@ -17,6 +17,8 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
   final TextEditingController phoneNumberController = TextEditingController();
   final TextEditingController employeeIdController = TextEditingController();
   final TextEditingController salaryController = TextEditingController();
+  final TextEditingController addressController = TextEditingController();
+
 
   List<Map<String, dynamic>> departments = []; // List of departments
   List<Map<String, dynamic>> workTitles = []; // List of work titles for the selected department
@@ -156,6 +158,8 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                     _buildTextField("Email", emailController, Icons.email, "Enter a valid email address."),
                     const SizedBox(height: 16),
                     _buildTextField("Phone Number", phoneNumberController, Icons.phone, "Enter the employee's phone number."),
+                    const SizedBox(height: 16),
+                    _buildTextField("Address", addressController, Icons.location_on, "Enter the employee's address."),
                     const SizedBox(height: 16),
                     _buildTextField("Salary", salaryController, Icons.money, "Enter the employee's salary."),
                     const SizedBox(height: 16),
@@ -334,6 +338,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
     lastNameController.clear();
     emailController.clear();
     phoneNumberController.clear();
+    addressController.clear();
     salaryController.clear();
     selectedDepartmentId = null;
     selectedWorkTitleId = null;

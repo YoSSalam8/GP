@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() {
   runApp(MyApp());
@@ -13,13 +15,16 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.teal,
       ),
-      home: const CalendarScreen(),
+      home: const CalendarScreen(employeeId: '123', email: 'test@example.com'),
     );
   }
 }
 
 class CalendarScreen extends StatefulWidget {
-  const CalendarScreen({Key? key}) : super(key: key);
+  final String employeeId;
+  final String email;
+
+  const CalendarScreen({Key? key, required this.employeeId, required this.email}) : super(key: key);
 
   @override
   _CalendarScreenState createState() => _CalendarScreenState();
@@ -29,31 +34,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
   double screenHeight = 0;
   double screenWidth = 0;
 
-  final Color primaryColor = const Color(0xFF008080);
-  final Color cardColor = Colors.white;
-  final Color accentColor = const Color(0xFF004D40);
-
   String _selectedDateRange = '';
   DateTime? _startDate;
   DateTime? _endDate;
 
-  final List<Map<String, dynamic>> sampleData = [
-    {
-      'date': DateTime(2025, 1, 2),
-      'checkIn': '08:45 AM',
-      'checkOut': '04:30 PM',
-    },
-    {
-      'date': DateTime(2025, DateTime.now().month, 5),
-      'checkIn': '09:00 AM',
-      'checkOut': '05:00 PM',
-    },
-    {
-      'date': DateTime(2025, DateTime.now().month, 12),
-      'checkIn': '09:15 AM',
-      'checkOut': '05:10 PM',
-    },
-  ];
+  List<Map<String, dynamic>> attendanceData = [];
+  bool isLoading = false;
 
   void _showDatePicker() async {
     DateTime? pickedDate = await showDatePicker(
@@ -69,6 +55,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         _endDate = null;
         _selectedDateRange = DateFormat('dd MMM yyyy').format(_startDate!);
       });
+      _fetchAttendanceData();
     }
   }
 
@@ -86,19 +73,61 @@ class _CalendarScreenState extends State<CalendarScreen> {
         _selectedDateRange =
         "${DateFormat('dd MMM yyyy').format(_startDate!)} - ${DateFormat('dd MMM yyyy').format(_endDate!)}";
       });
+      _fetchAttendanceData();
+    }
+  }
+
+  Future<void> _fetchAttendanceData() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    final url = Uri.parse(
+        "http://localhost:8080/api/attendance/employee/${widget.employeeId}/${widget.email}/attendance");
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+
+        setState(() {
+          attendanceData = data.map((record) {
+            return {
+              'checkInTime': record['checkInTime'] != null
+                  ? DateTime.parse(record['checkInTime'])
+                  : null,
+              'checkOutTime': record['checkOutTime'] != null
+                  ? DateTime.parse(record['checkOutTime'])
+                  : null,
+              'duration': record['duration'] ?? 0.0,
+            };
+          }).where((record) => record['checkInTime'] != null).toList();
+        });
+      } else {
+        print("Error: ${response.statusCode} ${response.body}");
+      }
+    } catch (e) {
+      print("Error fetching attendance data: $e");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
   List<Map<String, dynamic>> _getFilteredData() {
     if (_startDate == null) return [];
 
-    return sampleData.where((record) {
-      final date = record['date'] as DateTime;
+    return attendanceData.where((record) {
+      final checkInTime = record['checkInTime'] as DateTime;
       if (_endDate == null) {
-        return date.year == _startDate!.year && date.month == _startDate!.month && date.day == _startDate!.day;
+        return checkInTime.year == _startDate!.year &&
+            checkInTime.month == _startDate!.month &&
+            checkInTime.day == _startDate!.day;
       }
-      return date.isAfter(_startDate!.subtract(const Duration(days: 1))) &&
-          date.isBefore(_endDate!.add(const Duration(days: 1)));
+      return checkInTime.isAfter(_startDate!.subtract(const Duration(days: 1))) &&
+          checkInTime.isBefore(_endDate!.add(const Duration(days: 1)));
     }).toList();
   }
 
@@ -136,7 +165,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: isWeb ? 32 : screenWidth / 18,
-                color: accentColor,
               ),
             ),
             if (_selectedDateRange.isNotEmpty) ...[
@@ -150,7 +178,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
               ),
             ],
             const SizedBox(height: 20),
-            _buildAttendanceList(isWeb),
+            isLoading
+                ? Center(child: CircularProgressIndicator())
+                : _buildAttendanceList(isWeb),
           ],
         ),
       ),
@@ -165,7 +195,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       shrinkWrap: true,
       itemCount: filteredData.length,
       itemBuilder: (context, index) {
-        return _buildAttendanceCard(filteredData[index], index, isWeb);
+        return _buildAttendanceCard(filteredData[index], isWeb);
       },
     )
         : Center(
@@ -179,27 +209,26 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  Widget _buildAttendanceCard(Map<String, dynamic> data, int index, bool isWeb) {
-    final String checkIn = data['checkIn'].replaceAll(' ', '').trim();
-    final String checkOut = data['checkOut'].replaceAll(' ', '').trim();
+  Widget _buildAttendanceCard(Map<String, dynamic> data, bool isWeb) {
+    final DateTime? checkInTime = data['checkInTime'];
+    final DateTime? checkOutTime = data['checkOutTime'];
+    final double duration = data['duration'];
 
-    String totalTimeWorked;
-
-    try {
-      final DateTime checkInTime = DateFormat.jm().parse(checkIn);
-      final DateTime checkOutTime = DateFormat.jm().parse(checkOut);
-      final Duration workedDuration = checkOutTime.difference(checkInTime);
-      totalTimeWorked =
-      "${workedDuration.inHours}h ${workedDuration.inMinutes.remainder(60)}m";
-    } catch (e) {
-      totalTimeWorked = "Invalid Time";
-    }
+    String checkIn = checkInTime != null
+        ? DateFormat('hh:mm a').format(checkInTime)
+        : "N/A";
+    String checkOut = checkOutTime != null
+        ? DateFormat('hh:mm a').format(checkOutTime)
+        : "N/A";
+    String totalDuration = duration >= 0
+        ? "${duration.toStringAsFixed(2)} hours"
+        : "N/A";
 
     return Container(
-      margin: EdgeInsets.only(top: index > 0 ? 12 : 0, left: 6, right: 6),
+      margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: cardColor,
+        color: Colors.white,
         boxShadow: const [
           BoxShadow(
             color: Colors.black26,
@@ -213,11 +242,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            DateFormat('EEEE, MMM dd, yyyy').format(data['date']),
+            DateFormat('EEEE, MMM dd, yyyy').format(checkInTime!),
             style: TextStyle(
               fontSize: isWeb ? 22 : screenWidth / 22,
               fontWeight: FontWeight.bold,
-              color: accentColor,
             ),
           ),
           const SizedBox(height: 12),
@@ -227,7 +255,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               _buildInfoBox("Check In", checkIn, Icons.login, Colors.green, isWeb),
               _buildInfoBox("Check Out", checkOut, Icons.logout, Colors.red, isWeb),
               _buildInfoBox(
-                  "Total Time", totalTimeWorked, Icons.timer, Colors.blue, isWeb),
+                  "Total Time", totalDuration, Icons.timer, Colors.blue, isWeb),
             ],
           ),
         ],
