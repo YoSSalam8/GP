@@ -305,15 +305,7 @@
               ListTile(
                 leading: const Icon(Icons.edit),
                 title: const Text("Edit Company"),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => EditCompanyScreen(companyId: id), // Pass companyId
-                    ),
-                  );
-                },
+                onTap: () => _navigateTo(6)
               ),            ListTile(
                 leading: const Icon(Icons.announcement),
                 title: const Text("Announcements"),
@@ -362,14 +354,14 @@
           children:  [
             TodayScreen(employeeId: empId, email: email,),
             CalendarScreen(employeeId: empId, email: email,),
-            EmployeeProfileScreen(),
-            ProfileScreen(),
+            EmployeeProfileScreen(employeeId: empId, email: email,),
+            ProfileScreen(companyId: id),
             VacationRequestScreen(),
             AddEmployeeScreen(companyId: id),
             EditCompanyScreen(companyId: id),
             AnnouncementsScreen(),
             CreateAnnouncementScreen(),
-            DepartmentTreeScreen(companyId: id),
+            OrganizationTreeScreen(companyId: id),
             VacationViewScreen(),
             AdminRequestsPage(),
             AdminAbsenceVacationPage(),

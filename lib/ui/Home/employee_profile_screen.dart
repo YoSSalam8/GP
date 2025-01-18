@@ -1,7 +1,16 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class EmployeeProfileScreen extends StatefulWidget {
-  const EmployeeProfileScreen({super.key});
+  final String employeeId;
+  final String email;
+
+  const EmployeeProfileScreen({
+    super.key,
+    required this.employeeId,
+    required this.email,
+  });
 
   @override
   _EmployeeProfileScreenState createState() => _EmployeeProfileScreenState();
@@ -10,6 +19,21 @@ class EmployeeProfileScreen extends StatefulWidget {
 class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeInAnimation;
+
+  // Variables to store fetched data
+  String name = '';
+  String email = '';
+  String phoneNumber = '';
+  String address = '';
+  String skills = '';
+  String type = '';
+  String departmentName = '';
+  String workTitleName = '';
+  String companyName = '';
+  bool overtimeAllowed = false;
+  String workScheduleType = '';
+
+  bool isLoading = true; // Track loading state
 
   @override
   void initState() {
@@ -20,12 +44,45 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
     );
     _fadeInAnimation = CurvedAnimation(parent: _animationController, curve: Curves.easeIn);
     _animationController.forward(); // Start animation when screen opens
+
+    // Fetch employee data
+    _fetchEmployeeData();
   }
 
   @override
   void dispose() {
     _animationController.dispose();
     super.dispose();
+  }
+
+  Future<void> _fetchEmployeeData() async {
+    final url = 'http://localhost:8080/api/employees/${widget.employeeId}/${widget.email}';
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          name = data['name'] ?? '';
+          email = data['email'] ?? '';
+          phoneNumber = data['phoneNumber'] ?? 'N/A';
+          address = data['address'] ?? 'N/A';
+          skills = data['skills'] ?? 'N/A';
+          type = data['type'] ?? 'N/A';
+          departmentName = data['departmentName'] ?? 'N/A';
+          workTitleName = data['workTitleName'] ?? 'N/A';
+          companyName = data['companyName'] ?? 'N/A';
+          overtimeAllowed = data['overtimeAllowed'] ?? false;
+          workScheduleType = data['workScheduleType'] ?? 'N/A';
+          isLoading = false; // Set loading to false after fetching data
+        });
+      } else {
+        throw Exception('Failed to fetch employee data');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
   }
 
   @override
@@ -38,7 +95,9 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
     const Color textColor = Color(0xFF2D2D2D); // Dark grey for readability
 
     return Scaffold(
-      body: Container(
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [Colors.grey.shade300, Colors.grey.shade100], // Matching gradient background
@@ -62,11 +121,10 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
                   title: "Basic Information",
                   content: Column(
                     children: [
-                      _buildIconRow(Icons.badge, "Employee ID:", "EMP12345", textColor),
-                      _buildIconRow(Icons.email, "Email:", "yousef.abdulsalam@example.com", textColor),
-                      _buildIconRow(Icons.phone, "Phone Number:", "+123 456 7890", textColor),
-                      _buildIconRow(Icons.person, "Supervisor:", "John Doe", textColor),
-                      _buildIconRow(Icons.location_on, "Address:", "123 Tech Street, Silicon Valley", textColor),
+                      _buildIconRow(Icons.badge, "Name:", name, textColor),
+                      _buildIconRow(Icons.email, "Email:", email, textColor),
+                      _buildIconRow(Icons.phone, "Phone Number:", phoneNumber, textColor),
+                      _buildIconRow(Icons.location_on, "Address:", address, textColor),
                     ],
                   ),
                 ),
@@ -78,15 +136,17 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
                   title: "Job Details",
                   content: Column(
                     children: [
-                      _buildIconRow(Icons.work, "Job Contract:", "Full-Time", textColor),
-                      _buildIconRow(Icons.attach_money, "Wage:", "\$2000 per month", textColor),
-                      _buildIconRow(Icons.timeline, "Years of Service:", "3 years", textColor),
-                      _buildIconRow(Icons.info, "Additional Info:", "Dedicated and skilled team player", textColor),
+                      _buildIconRow(Icons.work, "Job Type:", type, textColor),
+                      _buildIconRow(Icons.business, "Company Name:", companyName, textColor),
+                      _buildIconRow(Icons.group_work, "Department Name:", departmentName, textColor),
+                      _buildIconRow(Icons.title, "Work Title Name:", workTitleName, textColor),
+                      _buildIconRow(Icons.calendar_today, "Work Schedule Type:", workScheduleType, textColor),
+                      _buildIconRow(Icons.access_time, "Overtime Allowed:", overtimeAllowed ? "Yes" : "No", textColor),
+                      _buildIconRow(Icons.info, "Skills:", skills, textColor),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -125,7 +185,7 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
             ),
             const SizedBox(height: 10),
             Text(
-              "Yousef Abdulsalam",
+              name,
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -134,7 +194,7 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
             ),
             const SizedBox(height: 4),
             Text(
-              "Senior Software Engineer",
+              workTitleName,
               style: TextStyle(
                 fontSize: 18,
                 color: primaryColor,

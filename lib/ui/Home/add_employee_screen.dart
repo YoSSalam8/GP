@@ -18,15 +18,21 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
   final TextEditingController employeeIdController = TextEditingController();
   final TextEditingController salaryController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
+  final TextEditingController skillsController = TextEditingController();
 
 
+  List<String> skills = [];
   List<Map<String, dynamic>> departments = []; // List of departments
   List<Map<String, dynamic>> workTitles = []; // List of work titles for the selected department
   String? selectedDepartmentId;
   String? selectedWorkTitleId;
-  String? selectedWorkTime; // Work time selection
+  String? selectedWorkTime;
+  String? employeeType;
+  bool isOvertimeAllowed = false;
 
   final List<String> workTimeOptions = ["SUNDAY_TO_THURSDAY", "MONDAY_TO_FRIDAY"];
+  final List<String> employeeTypes = ["FULL_TIME", "PART_TIME", "TRAINEE"]; // Add this line
+
 
   @override
   void initState() {
@@ -41,20 +47,18 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
         setState(() {
-          // Extract departments and explicitly convert workTitles to List<Map<String, dynamic>>
           departments = (data["departments"] as List).map((dept) {
             return {
               "id": dept["id"],
               "name": dept["name"],
-              "workTitles": (dept["workTitles"] as List)
-                  .map((workTitle) => {
-                "id": workTitle["id"],
-                "name": workTitle["name"],
-                "authorityIds": workTitle["authorityIds"] ?? [],
-              })
-                  .toList(),
+              "workTitles": (dept["workTitles"] as List).map((workTitle) {
+                return {
+                  "id": workTitle["id"],
+                  "name": workTitle["name"],
+                  "authorityIds": workTitle["authorityIds"] ?? [],
+                };
+              }).toList(),
             };
           }).toList();
         });
@@ -65,7 +69,6 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
-
 
   void _onDepartmentSelected(String? departmentName) {
     setState(() {
@@ -92,10 +95,15 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
       "id": employeeId,
       "email": emailController.text.trim(),
       "name": "${firstNameController.text.trim()} ${lastNameController.text.trim()}",
-      "departmentId": int.parse(selectedDepartmentId!),
-      "workTitleId": int.parse(selectedWorkTitleId!),
-      "salary": salary,
+      "phoneNumber": phoneNumberController.text.trim(),
+      "address": addressController.text.trim(),
+      "salary":salary,
+      "skills": skills.join(", "), // Convert skills list to a comma-separated string
+      "type": employeeType,
+      "departmentId": int.parse(selectedDepartmentId!), // Convert to integer
+      "workTitleId": int.parse(selectedWorkTitleId!), // Convert to integer
       "workScheduleType": selectedWorkTime,
+      "overtimeAllowed": isOvertimeAllowed,
     };
 
     try {
@@ -177,8 +185,33 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                         selectedWorkTime = value;
                       });
                     }),
-                    const SizedBox(height: 24),
-                    Center(
+                    const SizedBox(height: 16),
+                    _buildDropdown("Employee Type", employeeTypes, Icons.work, (value) {
+                      setState(() {
+                        employeeType = value;
+                      });
+                    }),
+                    const SizedBox(height: 16),
+                    _buildSkillsField(),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        const Text(
+                          "Overtime Allowed",
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        const Spacer(),
+                        Switch(
+                          value: isOvertimeAllowed,
+                          onChanged: (value) {
+                            setState(() {
+                              isOvertimeAllowed = value;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),                    Center(
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF133E87),
@@ -194,7 +227,9 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                               salaryController.text.isEmpty ||
                               selectedDepartmentId == null ||
                               selectedWorkTitleId == null ||
-                              selectedWorkTime == null) {
+                              selectedWorkTime == null ||
+                              selectedWorkTime == null ||
+                              employeeType == null) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text("Please fill all fields before submitting.")),
                             );
@@ -217,6 +252,63 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
       ),
     );
   }
+
+  Widget _buildSkillsField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Skills",
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: skillsController,
+                decoration: InputDecoration(
+                  hintText: "Enter a skill",
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  filled: true,
+                  fillColor: Colors.grey.shade100,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+              onPressed: () {
+                if (skillsController.text.isNotEmpty) {
+                  setState(() {
+                    skills.add(skillsController.text.trim());
+                    skillsController.clear();
+                  });
+                }
+              },
+              child: const Text("Add"),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          children: skills.map((skill) {
+            return Chip(
+              label: Text(skill),
+              deleteIcon: const Icon(Icons.cancel),
+              onDeleted: () {
+                setState(() {
+                  skills.remove(skill);
+                });
+              },
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
 
   Widget _buildTextField(String label, TextEditingController controller, IconData icon, String helperText) {
     return TextField(

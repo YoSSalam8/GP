@@ -22,6 +22,7 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
   List<Map<String, dynamic>> departments = [];
   String workStartTime = "09:00:00"; // Default start time
   String workEndTime = "18:00:00"; // Default end time
+  List<Map<String, dynamic>> leaveTypes = [];
 
   final List<Map<String, dynamic>> authorities = [
     {"id": 1, "name": "EDIT_PERSONAL_DETAILS"},
@@ -83,7 +84,11 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
       );
     });
   }
-
+  void addLeaveType() {
+    setState(() {
+      leaveTypes.add({"type": "", "daysAllowed": 0, "isPaid": false});
+    });
+  }
   void previousStage() {
     setState(() {
       if (currentStage > 0) {
@@ -195,6 +200,114 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
     );
   }
 
+  Widget buildLeaveTypeStage() {
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 300),
+      opacity: currentStage == 3 ? 1.0 : 0.0,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Step 4: Define Leave Types",
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: addLeaveType,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal.shade600,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(150, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              child: const Text("Add Leave Type"),
+            ),
+            const SizedBox(height: 20),
+            ...leaveTypes.asMap().entries.map((entry) {
+              int index = entry.key;
+              Map<String, dynamic> leaveType = entry.value;
+
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.only(bottom: 20),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: Colors.teal.shade800, width: 2.5),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: "Leave Type (e.g., Sickness, Vacation)",
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        prefixIcon: const Icon(Icons.category),
+                      ),
+                      onChanged: (value) => leaveTypes[index]["type"] = value,
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: "Number of Allowed Days",
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        prefixIcon: const Icon(Icons.calendar_today),
+                      ),
+                      onChanged: (value) => leaveTypes[index]["daysAllowed"] = int.tryParse(value) ?? 0,
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        const Text(
+                          "Paid Leave?",
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        const Spacer(),
+                        Switch(
+                          value: leaveTypes[index]["isPaid"],
+                          onChanged: (value) {
+                            setState(() {
+                              leaveTypes[index]["isPaid"] = value;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          leaveTypes.removeAt(index);
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(150, 40),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      child: const Text("Remove Leave Type"),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     Size size = MediaQuery.of(context).size;
@@ -231,6 +344,8 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
                     buildCompanyStage(),
                     buildCountryStage(),
                     buildDepartmentStage(),
+                    buildLeaveTypeStage(), // New leave type stage
+
                   ],
                 ),
               ),
@@ -255,7 +370,7 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
                       ),
                     ElevatedButton(
                       onPressed: () {
-                        if (currentStage == 2) {
+                        if (currentStage == 3) {
                           final requestPayload = {
                             "name": companyName,
                             "creatorEmail": creatorEmail,
@@ -274,6 +389,13 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
                                 }).toList(),
                               };
                             }).toList(),
+                            "leaveTypes": leaveTypes.map((leaveType) {
+                              return {
+                                "name": leaveType["type"], // Map "type" to "name"
+                                "maxAllowedDays": leaveType["daysAllowed"], // Adjust key
+                                "isPaid": leaveType["isPaid"],
+                              };
+                            }).toList(),
                           };
 
                           sendRequest(context, requestPayload);
@@ -289,7 +411,7 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                       ),
-                      child: Text(currentStage == 2 ? "Submit" : "Next"),
+                      child: Text(currentStage == 3 ? "Submit" : "Next"),
                     ),
                   ],
                 ),
@@ -359,7 +481,7 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
               Expanded(
                 child: TextField(
                   decoration: InputDecoration(
-                    labelText: "Start Time (e.g., 09:00 AM)",
+                    labelText: "Start Time (e.g., 09:00 )",
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -378,7 +500,7 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
               Expanded(
                 child: TextField(
                   decoration: InputDecoration(
-                    labelText: "End Time (e.g., 05:00 PM)",
+                    labelText: "End Time (e.g., 17:00 )",
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),

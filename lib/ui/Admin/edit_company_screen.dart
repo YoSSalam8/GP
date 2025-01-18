@@ -124,6 +124,8 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
         }).toList(),
       });
 
+      print("Headers: ${{'Content-Type': 'application/json'}}");
+      print("Body: $body");
       final response = await http.put(
         Uri.parse(apiUrl),
         headers: {
@@ -177,9 +179,13 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
               const SizedBox(height: 16),
               _buildUneditableField("Creator Email", creatorEmail),
               const SizedBox(height: 16),
-              _buildUneditableField("Work Start Time", workStartTime),
+              _buildEditableField("Work Start Time", workStartTime, (value) {
+                setState(() => workStartTime = value);
+              }),
               const SizedBox(height: 16),
-              _buildUneditableField("Work End Time", workEndTime),
+              _buildEditableField("Work End Time", workEndTime, (value) {
+                setState(() => workEndTime = value);
+              }),
               const SizedBox(height: 16),
               _buildSection("Email Domains", emailDomains, "Enter new domain",
                       (value) => setState(() => emailDomains.add(value))),
@@ -206,6 +212,18 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
           ),
         ),
       ),
+    );
+  }
+  Widget _buildEditableField(String label, String value, Function(String) onChanged) {
+    return TextFormField(
+      initialValue: value,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        filled: true,
+        fillColor: Colors.grey.shade100,
+      ),
+      onChanged: onChanged,
     );
   }
 

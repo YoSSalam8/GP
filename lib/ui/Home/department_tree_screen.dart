@@ -2,192 +2,206 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-class DepartmentTreeScreen extends StatefulWidget {
+class OrganizationTreeScreen extends StatefulWidget {
   final String companyId;
 
-  const DepartmentTreeScreen({super.key, required this.companyId});
+  const OrganizationTreeScreen({Key? key, required this.companyId}) : super(key: key);
 
   @override
-  _DepartmentTreeScreenState createState() => _DepartmentTreeScreenState();
+  State<OrganizationTreeScreen> createState() => _OrganizationTreeScreenState();
 }
 
-class _DepartmentTreeScreenState extends State<DepartmentTreeScreen> {
-  late Future<List<Map<String, dynamic>>> _departmentsFuture;
+class _OrganizationTreeScreenState extends State<OrganizationTreeScreen> {
+  late Future<Map<String, Map<String, List<Map<String, dynamic>>>>> _organizationTreeFuture;
+  String _searchQuery = "";
 
   @override
   void initState() {
     super.initState();
-    _departmentsFuture = fetchDepartments(widget.companyId);
+    _organizationTreeFuture = fetchOrganizationTree(widget.companyId);
   }
 
-  Future<List<Map<String, dynamic>>> fetchDepartments(String companyId) async {
+  Future<Map<String, Map<String, List<Map<String, dynamic>>>>> fetchOrganizationTree(String companyId) async {
     final url = Uri.parse('http://localhost:8080/api/employees/company/$companyId/employees');
     try {
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
-        print("Raw Response: ${response.body}"); // Debug the raw response
+        final data = jsonDecode(response.body) as List;
 
-        // Clean up the response to handle malformed JSON
-        String sanitizedBody = response.body;
+        final Map<String, Map<String, List<Map<String, dynamic>>>> organizationTree = {};
 
-        // Fix cases where the response starts with unexpected characters
-        sanitizedBody = sanitizedBody.trim().replaceAll('\n', '').replaceAll('\r', '');
+        for (var employee in data) {
+          final department = employee['departmentName'];
+          final workTitle = employee['workTitleName'];
 
-        try {
-          // Parse the sanitized JSON
-          final data = jsonDecode(sanitizedBody) as List;
-          return data.map((department) => department as Map<String, dynamic>).toList();
-        } catch (jsonError) {
-          throw Exception('JSON Parsing Error: ${jsonError.toString()}');
+          if (!organizationTree.containsKey(department)) {
+            organizationTree[department] = {};
+          }
+
+          if (!organizationTree[department]!.containsKey(workTitle)) {
+            organizationTree[department]![workTitle] = [];
+          }
+
+          organizationTree[department]![workTitle]!.add(employee);
         }
+
+        return organizationTree;
       } else {
-        throw Exception('Failed to load data: ${response.statusCode}');
+        throw Exception('Failed to fetch data: ${response.statusCode}');
       }
     } catch (e) {
       throw Exception('Error fetching data: $e');
     }
   }
 
+  List<MapEntry<String, Map<String, List<Map<String, dynamic>>>>> filterData(
+      Map<String, Map<String, List<Map<String, dynamic>>>> organizationTree) {
+    if (_searchQuery.isEmpty) {
+      return organizationTree.entries.toList();
+    }
+
+    return organizationTree.entries.where((departmentEntry) {
+      final departmentName = departmentEntry.key.toLowerCase();
+      final workTitles = departmentEntry.value;
+
+      return departmentName.contains(_searchQuery.toLowerCase()) ||
+          workTitles.entries.any((workTitleEntry) {
+            final workTitleName = workTitleEntry.key.toLowerCase();
+            final employees = workTitleEntry.value;
+
+            return workTitleName.contains(_searchQuery.toLowerCase()) ||
+                employees.any((employee) {
+                  final employeeName = employee['name']?.toLowerCase() ?? '';
+                  return employeeName.contains(_searchQuery.toLowerCase());
+                });
+          });
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Department Tree"),
-        backgroundColor: const Color(0xFF133E87),
-      ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _departmentsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}"));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text("No data available"));
-          }
 
-          final departments = snapshot.data!;
-          return ListView.builder(
-            itemCount: departments.length,
-            itemBuilder: (context, index) {
-              final department = departments[index];
-              return DepartmentTile(department: department);
-            },
-          );
-        },
-      ),
-    );
-  }
-}
-
-class DepartmentTile extends StatelessWidget {
-  final Map<String, dynamic> department;
-
-  const DepartmentTile({required this.department, super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 10,
-      margin: const EdgeInsets.only(bottom: 20),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Colors.white, Color(0xFFe3f2fd)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Theme(
-          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-          child: ExpansionTile(
-            leading: const Icon(Icons.account_tree_outlined, color: Colors.blue),
-            title: Row(
-              children: [
-                Text(
-                  department["name"],
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Chip(
-                  label: Text(
-                    "${department["workTitles"].length} Roles",
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  backgroundColor: Colors.blueAccent,
-                ),
-              ],
-            ),
-            children: department["workTitles"].map<Widget>((workTitle) {
-              return WorkTitleTile(workTitle: workTitle);
-            }).toList(),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class WorkTitleTile extends StatelessWidget {
-  final Map<String, dynamic> workTitle;
-
-  const WorkTitleTile({required this.workTitle, super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.orange.shade50,
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: ExpansionTile(
-        leading: const Icon(Icons.work_outline_rounded, color: Colors.orange),
-        title: Row(
-          children: [
-            Text(
-              workTitle["title"],
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: Colors.orangeAccent,
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: "Search by department, work title, or employee...",
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
             ),
-            const SizedBox(width: 8),
-            Chip(
-              label: Text(
-                "${workTitle["employees"].length} Employees",
-                style: const TextStyle(color: Colors.white),
-              ),
-              backgroundColor: Colors.orange,
+          ),
+          Expanded(
+            child: FutureBuilder<Map<String, Map<String, List<Map<String, dynamic>>>>>(
+              future: _organizationTreeFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text("Error: ${snapshot.error}"));
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text("No data available"));
+                }
+
+                final organizationTree = snapshot.data!;
+                final filteredData = filterData(organizationTree);
+
+                return ListView(
+                  padding: const EdgeInsets.all(12.0),
+                  children: filteredData.map((departmentEntry) {
+                    final departmentName = departmentEntry.key;
+                    final workTitles = departmentEntry.value;
+
+                    // Calculate total employees in the department
+                    final totalEmployees = workTitles.values.fold<int>(
+                        0, (sum, workTitleEmployees) => sum + workTitleEmployees.length);
+
+                    return Card(
+                      elevation: 8,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      child: ExpansionTile(
+                        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        iconColor: Colors.blueAccent,
+                        collapsedIconColor: Colors.blueAccent,
+                        title: Row(
+                          children: [
+                            const Icon(Icons.account_tree_rounded, size: 30, color: Colors.blueAccent),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                "$departmentName ($totalEmployees Employees)",
+                                style: const TextStyle(
+                                    fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+                              ),
+                            ),
+                          ],
+                        ),
+                        children: workTitles.entries.map((workTitleEntry) {
+                          final workTitleName = workTitleEntry.key;
+                          final employees = workTitleEntry.value;
+
+                          return Padding(
+                            padding: const EdgeInsets.only(left: 16.0),
+                            child: Card(
+                              margin: const EdgeInsets.symmetric(vertical: 8),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              child: ExpansionTile(
+                                tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                iconColor: Colors.orangeAccent,
+                                collapsedIconColor: Colors.orangeAccent,
+                                title: Row(
+                                  children: [
+                                    const Icon(Icons.work_outline, size: 28, color: Colors.orangeAccent),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        "$workTitleName (${employees.length} Employees)",
+                                        style: const TextStyle(
+                                            fontSize: 18, fontWeight: FontWeight.w600, color: Colors.orangeAccent),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                children: employees.map((employee) {
+                                  return ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                                    leading: CircleAvatar(
+                                      backgroundColor: Colors.blueAccent.shade100,
+                                      child: const Icon(Icons.person, color: Colors.white),
+                                    ),
+                                    title: Text(employee['name'] ?? 'Unnamed Employee'),
+                                    subtitle: Text("ID: ${employee['id']}"),
+                                    trailing: Text(
+                                      employee['status'] ?? '',
+                                      style: TextStyle(
+                                        color: employee['status'] == 'PRESENT' ? Colors.green : Colors.red,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
             ),
-          ],
-        ),
-        children: workTitle["employees"].map<Widget>((employee) {
-          return ListTile(
-            leading: const CircleAvatar(
-              backgroundColor: Colors.blueAccent,
-              child: Icon(Icons.person, color: Colors.white),
-            ),
-            title: Text(
-              employee["name"],
-              style: const TextStyle(fontSize: 18, color: Colors.black87),
-            ),
-            subtitle: Text(
-              "ID: ${employee["id"]}",
-              style: const TextStyle(color: Colors.grey),
-            ),
-          );
-        }).toList(),
+          ),
+        ],
       ),
     );
   }
