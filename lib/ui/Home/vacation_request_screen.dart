@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 class VacationRequestScreen extends StatefulWidget {
-  const VacationRequestScreen({super.key});
+  final String companyId;
+  final String employeeId;
+  final String employeeEmail;
+  const VacationRequestScreen({super.key, required this.companyId, required this.employeeId, required this.employeeEmail});
 
   @override
   State<VacationRequestScreen> createState() => _VacationRequestScreenState();
@@ -14,6 +20,8 @@ class _VacationRequestScreenState extends State<VacationRequestScreen> {
   DateTime? endDate;
   int selectedDays = 0;
   String? selectedAbsenceType;
+  List<dynamic> leaveTypes = [];
+  Map<String, int> remainingDaysMap = {};
 
   final List<String> absenceTypes = [
     "Sickness",
@@ -22,6 +30,118 @@ class _VacationRequestScreenState extends State<VacationRequestScreen> {
     "Unpaid Leave",
     "Other",
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCompanyLeaveTypes();
+    _fetchEmployeeLeaveBalances();
+  }
+
+  void _submitVacationRequest() async {
+    if (startDate == null || endDate == null || selectedAbsenceType == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill all fields before submitting.")),
+      );
+      return;
+    }
+
+    try {
+      // Find the selected leave type ID
+      final selectedLeaveType = leaveTypes.firstWhere(
+            (type) => type['name'] == selectedAbsenceType,
+        orElse: () => null,
+      );
+
+      if (selectedLeaveType == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Invalid leave type selected.")),
+        );
+        return;
+      }
+
+      final leaveTypeId = selectedLeaveType['id'];
+
+      // Prepare the request payload
+      final requestPayload = {
+        "employeeId": int.parse(widget.employeeId),
+        "employeeEmail": widget.employeeEmail,
+        "leaveTypeId": leaveTypeId,
+        "startDate": DateFormat('yyyy-MM-dd').format(startDate!),
+        "endDate": DateFormat('yyyy-MM-dd').format(endDate!),
+        "remarks": messageController.text.isNotEmpty ? messageController.text : "Vacation leave request."
+      };
+
+      // Send the POST request
+      final response = await http.post(
+        Uri.parse("http://localhost:8080/api/leave-requests/submit"),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(requestPayload),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Vacation request submitted successfully.")),
+        );
+        // Reset the form
+        setState(() {
+          startDate = null;
+          endDate = null;
+          selectedDays = 0;
+          selectedAbsenceType = null;
+          messageController.clear();
+        });
+      } else {
+        _showError("Failed to submit vacation request: ${response.body}");
+      }
+    } catch (e) {
+      _showError("An error occurred: $e");
+    }
+  }
+  Future<void> _fetchCompanyLeaveTypes() async {
+    try {
+      final response = await http.get(
+        Uri.parse("http://localhost:8080/api/companies/${widget.companyId}"),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          leaveTypes = data['leaveTypes'];
+        });
+      } else {
+        _showError("Failed to fetch company leave types.");
+      }
+    } catch (e) {
+      _showError("An error occurred: $e");
+    }
+  }
+
+  Future<void> _fetchEmployeeLeaveBalances() async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+          "http://localhost:8080/api/leave-requests/employee/${widget.employeeId}/${widget.employeeEmail}/balances",
+        ),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          remainingDaysMap = {
+            for (var balance in data) balance['leaveTypeName']: balance['remainingDays']
+          };
+        });
+      } else {
+        _showError("Failed to fetch leave balances.");
+      }
+    } catch (e) {
+      _showError("An error occurred: $e");
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -151,10 +271,15 @@ class _VacationRequestScreenState extends State<VacationRequestScreen> {
               value: selectedAbsenceType,
               hint: const Text("Select absence type"),
               isExpanded: true,
-              items: absenceTypes.map((type) {
+              items: leaveTypes.map((type) {
+                String name = type['name'];
+                int maxDays = type['maxDays'];
+                int remainingDays = remainingDaysMap[name] ?? maxDays;
                 return DropdownMenuItem<String>(
-                  value: type,
-                  child: Text(type),
+                  value: name,
+                  child: Text(
+                    "$name (${remainingDays} days remaining)",
+                  ),
                 );
               }).toList(),
               onChanged: (value) {
@@ -311,7 +436,7 @@ class _VacationRequestScreenState extends State<VacationRequestScreen> {
             );
             return;
           }
-
+          _submitVacationRequest();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(

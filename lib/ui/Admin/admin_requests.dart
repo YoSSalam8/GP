@@ -1,38 +1,114 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class AdminRequestsPage extends StatefulWidget {
-  const AdminRequestsPage({super.key});
+  final String companyId;
+  final String approverId;
+  final String approverEmail;
+  const AdminRequestsPage({
+    super.key,
+    required this.companyId,
+    required this.approverId,
+    required this.approverEmail,
+  });
 
   @override
   State<AdminRequestsPage> createState() => _AdminRequestsPageState();
 }
 
 class _AdminRequestsPageState extends State<AdminRequestsPage> {
-  final List<Map<String, dynamic>> requests = [
-    {
-      "employee": "Mohammad Aker",
-      "type": "Vacation",
-      "message": "Requesting a vacation for 3 days.",
-      "days": 3
-    },
-    {
-      "employee": "Yousef AbdulSalam",
-      "type": "Sick Leave",
-      "message": "Feeling unwell, requesting 2 days off.",
-      "days": 2
-    },
-  ];
+  List<dynamic> requests = [];
+  bool isLoading = true;
 
-  void handleAction(int index, String action) {
-    setState(() {
-      requests.removeAt(index);
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Request ${action.toLowerCase()}ed successfully!"),
-        backgroundColor: action == "Accept" ? Colors.green : Colors.redAccent,
-      ),
-    );
+  @override
+  void initState() {
+    super.initState();
+    _fetchLeaveRequests();
+  }
+
+  Future<void> _fetchLeaveRequests() async {
+    try {
+      final response = await http.get(
+        Uri.parse("http://localhost:8080/api/leave-requests/company/${widget.companyId}"),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          // Filter requests with a "Pending" status
+          requests = json
+              .decode(response.body)
+              .where((request) => request["status"] == "Pending")
+              .toList();
+          isLoading = false;
+        });
+      } else {
+        _showError("Failed to fetch leave requests: ${response.body}");
+      }
+    } catch (e) {
+      _showError("An error occurred: $e");
+    }
+  }
+
+  Future<void> _handleApproval(int index, int requestId) async {
+    final url = "http://localhost:8080/api/leave-requests/$requestId/approve";
+    final payload = {
+      "approverId": int.parse(widget.approverId),
+      "approverEmail": widget.approverEmail,
+    };
+
+    try {
+      final response = await http.put(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(payload),
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Request approved successfully!")),
+        );
+        setState(() {
+          requests.removeAt(index); // Remove the request card
+        });
+      } else {
+        _showError("Failed to approve request: ${response.body}");
+      }
+    } catch (e) {
+      _showError("An error occurred: $e");
+    }
+  }
+
+  Future<void> _handleRejection(int index, int requestId) async {
+    final url = "http://localhost:8080/api/leave-requests/$requestId/reject";
+    final payload = {
+      "remarks": "Leave denied due to project deadlines.",
+    };
+
+    try {
+      final response = await http.put(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(payload),
+      );
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Request denied successfully!")),
+        );
+        setState(() {
+          requests.removeAt(index); // Remove the request card
+        });
+      } else {
+        _showError("Failed to reject request: ${response.body}");
+      }
+    } catch (e) {
+      _showError("An error occurred: $e");
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -54,7 +130,9 @@ class _AdminRequestsPageState extends State<AdminRequestsPage> {
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: contentWidth),
-            child: requests.isNotEmpty
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : requests.isNotEmpty
                 ? ListView.builder(
               itemCount: requests.length,
               itemBuilder: (context, index) {
@@ -81,13 +159,19 @@ class _AdminRequestsPageState extends State<AdminRequestsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDetailRow(Icons.person, "Employee", request["employee"]),
+            _buildDetailRow(Icons.person, "Employee", request["employeeName"]),
             const SizedBox(height: 8),
-            _buildDetailRow(Icons.category, "Type", request["type"]),
+            _buildDetailRow(Icons.email, "Email", request["employeeEmail"]),
             const SizedBox(height: 8),
-            _buildDetailRow(Icons.calendar_today, "Days", "${request["days"]} days"),
+            _buildDetailRow(Icons.category, "Type", request["leaveTypeName"]),
             const SizedBox(height: 8),
-            _buildDetailRow(Icons.message, "Message", request["message"]),
+            _buildDetailRow(
+                Icons.calendar_today, "Start Date", request["startDate"]),
+            const SizedBox(height: 8),
+            _buildDetailRow(
+                Icons.calendar_today_outlined, "End Date", request["endDate"]),
+            const SizedBox(height: 8),
+            _buildDetailRow(Icons.message, "Remarks", request["remarks"]),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -95,13 +179,13 @@ class _AdminRequestsPageState extends State<AdminRequestsPage> {
                 _buildActionButton(
                   "Accept",
                   Colors.green,
-                      () => handleAction(index, "Accept"),
+                      () => _handleApproval(index, request["id"]),
                 ),
                 const SizedBox(width: 8),
                 _buildActionButton(
                   "Deny",
                   Colors.redAccent,
-                      () => handleAction(index, "Deny"),
+                      () => _handleRejection(index, request["id"]),
                 ),
               ],
             ),

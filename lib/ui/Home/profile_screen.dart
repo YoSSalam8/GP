@@ -23,6 +23,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   TextEditingController workScheduleController = TextEditingController();
   TextEditingController departmentController = TextEditingController(); // Added
   TextEditingController workTitleController = TextEditingController(); // Added
+  TextEditingController supervisorIdController = TextEditingController();
+  TextEditingController supervisorEmailController = TextEditingController();
 
   String? selectedSupervisor;
   String? selectedDepartment;
@@ -32,9 +34,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   String? selectedEmployeeId;
 
-  final List<String> supervisors = ["Alice Johnson", "Bob Williams", "Catherine Smith", "David Brown"];
   final List<String> jobTypes = ["FULL_TIME", "PART_TIME", "TRAINEE"];
   final List<String> workTimes = ["SUNDAY_TO_THURSDAY", "MONDAY_TO_FRIDAY"];
+  List<Map<String, dynamic>> supervisors = [];
+  List<Map<String, dynamic>> filteredSupervisors = [];
 
   List<Map<String, dynamic>> employees = [];
   List<Map<String, dynamic>> filteredEmployees = [];
@@ -49,6 +52,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _fetchEmployees();
     _fetchCompanyDetails();
+    _fetchSupervisors();
 // Fetch employees on screen load
   }
 
@@ -159,6 +163,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _fetchSupervisors() async {
+    final url = 'http://localhost:8080/api/employees/company/${widget.companyId}/employees';
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          supervisors = List<Map<String, dynamic>>.from(data);
+          filteredSupervisors = supervisors;
+        });
+      } else {
+        throw Exception('Failed to fetch supervisors. Status: ${response.statusCode}');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error fetching supervisors: $e')));
+    }
+  }
+
+  void _filterSupervisors(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        filteredSupervisors = supervisors;
+      } else {
+        filteredSupervisors = supervisors.where((supervisor) {
+          final name = supervisor['name'].toLowerCase();
+          final id = supervisor['id'].toString();
+          return name.contains(query.toLowerCase()) || id.contains(query);
+        }).toList();
+      }
+    });
+  }
+
+  void _selectSupervisor(Map<String, dynamic> supervisor) {
+    setState(() {
+      supervisorIdController.text = supervisor['id'].toString();
+      supervisorEmailController.text = supervisor['email'];
+      filteredSupervisors = supervisors;
+    });
+  }
+
   void _editEmployee(Map<String, dynamic> employee) {
     setState(() {
       selectedEmployeeId = employee["id"].toString();
@@ -208,6 +252,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         orElse: () => {"id": null},
       )["id"],
       "workScheduleType": selectedWorkTime ?? "SUNDAY_TO_THURSDAY",
+      "supervisorId": {
+        "id": int.tryParse(supervisorIdController.text),
+        "email": supervisorEmailController.text,
+      },
     };
 
     try {
@@ -340,6 +388,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         selectedWorkTime = value;
                       });
                     }),
+
+                    _buildSupervisorIdField(),
+                    const SizedBox(height: 16),
+                    _buildSupervisorEmailField(),
+                    const SizedBox(height: 16),
                     const SizedBox(height: 20),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -363,6 +416,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
+    );
+  }
+  Widget _buildSupervisorIdField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text("Supervisor ID", style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: supervisorIdController,
+          decoration: InputDecoration(
+            hintText: "Enter or search Supervisor ID",
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          onChanged: _filterSupervisors,
+        ),
+        const SizedBox(height: 8),
+        if (filteredSupervisors.isNotEmpty)
+          Container(
+            height: 150,
+            decoration: BoxDecoration(border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(8)),
+            child: ListView.builder(
+              itemCount: filteredSupervisors.length,
+              itemBuilder: (context, index) {
+                final supervisor = filteredSupervisors[index];
+                return ListTile(
+                  title: Text(supervisor['name']),
+                  subtitle: Text(supervisor['email']),
+                  onTap: () => _selectSupervisor(supervisor),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSupervisorEmailField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text("Supervisor Email", style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: supervisorEmailController,
+          readOnly: true,
+          decoration: InputDecoration(
+            hintText: "Supervisor Email",
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+      ],
     );
   }
 

@@ -1,4 +1,5 @@
   import 'package:flutter/material.dart';
+import 'package:graduation_project/ui/Admin/create_project.dart';
   import 'package:graduation_project/ui/Home/calendar_screen.dart';
   import 'package:graduation_project/ui/Home/profile_screen.dart';
   import 'package:graduation_project/ui/Home/today_screen.dart';
@@ -19,6 +20,9 @@
   import 'package:graduation_project/ui/Home/view_vacation_request.dart';
   import 'package:graduation_project/ui/Admin/admin_requests.dart';
   import 'package:graduation_project/ui/Admin/admin_absence_vacation.dart';
+  import 'package:http/http.dart' as http;
+  import 'package:http_parser/http_parser.dart';
+
 
 
 
@@ -44,6 +48,8 @@
     int currentIndex = 0;
     File? _profileImage; // To store the selected image file
     bool isHovering = false; // Added this variable to fix the error
+    Uint8List? profilePicture;
+
 
 
     @override
@@ -51,6 +57,8 @@
       super.initState();
       print("Token in HomePage: ${widget.token}");
       decodeAndPrintToken(widget.token);
+      fetchProfilePicture(); // Fetch the profile picture when the app starts
+
     }
     void decodeAndPrintToken(String token) {
       try {
@@ -87,9 +95,24 @@
         print("Error decoding token: $e");
       }
     }
+    Future<void> fetchProfilePicture() async {
+      final url = 'http://localhost:8080/api/employees/$empId/$email/picture';
+      try {
+        final response = await http.get(Uri.parse(url));
+        if (response.statusCode == 200) {
+          setState(() {
+            profilePicture = response.bodyBytes;
+          });
+        } else {
+          print("Failed to fetch profile picture: ${response.body}");
+        }
+      } catch (e) {
+        print("Error fetching profile picture: $e");
+      }
+    }
 
     Future<void> pickUploadProfilePic() async {
-      final ImagePicker picker = ImagePicker();
+      final picker = ImagePicker();
       final XFile? image = await picker.pickImage(
         source: ImageSource.gallery,
         maxHeight: 512,
@@ -99,17 +122,46 @@
 
       if (image != null) {
         if (kIsWeb) {
-          final Uint8List imageData = await image.readAsBytes(); // Read bytes for web
-          setState(() {
-            webImage = imageData;
-          });
+          final Uint8List imageData = await image.readAsBytes();
+          uploadProfilePicture(imageData);
         } else {
-          setState(() {
-            imagePath = image.path; // File path for mobile
-          });
+          uploadProfilePicture(File(image.path).readAsBytesSync());
         }
       }
     }
+
+
+    Future<void> uploadProfilePicture(Uint8List imageData) async {
+      final url = 'http://localhost:8080/api/employees/$empId/$email/upload-picture';
+      final request = http.MultipartRequest('POST', Uri.parse(url))
+        ..fields['employeeId'] = empId
+        ..files.add(
+          http.MultipartFile.fromBytes(
+            'picture',
+            imageData,
+            filename: 'profile_pic.png',
+            contentType: MediaType('image', 'png'),
+          ),
+        );
+
+      try {
+        final response = await request.send();
+        if (response.statusCode == 200) {
+          setState(() {
+            profilePicture = imageData;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Profile picture updated successfully!")),
+          );
+        } else {
+          print("Failed to upload profile picture. Status: ${response.statusCode}");
+        }
+      } catch (e) {
+        print("Error uploading profile picture: $e");
+      }
+    }
+
+
     // Method to handle logout
     void _showLogoutDialog() {
       double screenWidth = MediaQuery.of(context).size.width;
@@ -244,38 +296,39 @@
             children: [
               UserAccountsDrawerHeader(
                 accountName: Text("Employee Name"),
-                accountEmail: Text("employee@example.com"),
+                accountEmail: Text(email),
                 currentAccountPicture: GestureDetector(
-                  onTap: pickUploadProfilePic,
+                  onTap: pickUploadProfilePic, // Open file picker to upload profile picture
                   child: MouseRegion(
-                    onEnter: (_) => setState(() => isHovering = true),
-                    onExit: (_) => setState(() => isHovering = false),
+                    onEnter: (_) => setState(() => isHovering = true), // On hover, increase size
+                    onExit: (_) => setState(() => isHovering = false), // On exit, reset size
                     child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
+                      duration: const Duration(milliseconds: 300), // Smooth size transition
                       height: isHovering ? 170 : 160,
                       width: isHovering ? 170 : 160,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: const LinearGradient(
-                          colors: [Color(0xFF608BC1), Color(0xFF133E87)],
+                          colors: [Color(0xFF608BC1), Color(0xFF133E87)], // Gradient background
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         boxShadow: const [
                           BoxShadow(
-                            color: Colors.black26,
+                            color: Colors.black26, // Subtle shadow
                             blurRadius: 12,
                             offset: Offset(4, 4),
                           ),
                         ],
                       ),
                       child: ClipOval(
-                        child: _buildProfileImage(),
+                        child: _buildProfileImage(), // Display profile picture or placeholder
                       ),
                     ),
                   ),
                 ),
               ),
+
               ListTile(
                 leading: Icon(Icons.home),
                 title: Text("Today"),
@@ -337,6 +390,11 @@
                 title: const Text(" Check Employee Attendance"),
                 onTap: () => _navigateTo(12), // New index for Department Tree page
               ),
+              ListTile(
+                leading: const Icon(Icons.person),
+                title: const Text(" Create Project"),
+                onTap: () => _navigateTo(13), // New index for Department Tree page
+              ),
 
 
               Divider(),
@@ -356,15 +414,16 @@
             CalendarScreen(employeeId: empId, email: email,),
             EmployeeProfileScreen(employeeId: empId, email: email,),
             ProfileScreen(companyId: id),
-            VacationRequestScreen(),
+            VacationRequestScreen(employeeId: empId, employeeEmail: email,companyId: id),
             AddEmployeeScreen(companyId: id),
             EditCompanyScreen(companyId: id),
-            AnnouncementsScreen(),
-            CreateAnnouncementScreen(),
+            AnnouncementsScreen(companyId: id),
+            CreateAnnouncementScreen(employeeId: empId, employeeEmail: email,companyId: id),
             OrganizationTreeScreen(companyId: id),
-            VacationViewScreen(),
-            AdminRequestsPage(),
+            VacationViewScreen(employeeId: empId, employeeEmail: email,),
+            AdminRequestsPage(approverId: empId, approverEmail: email,companyId: id),
             AdminAbsenceVacationPage(),
+            CreateProject(companyId: id),
           ],
         ),
       );
@@ -399,6 +458,8 @@
           return"Vacation Approval";
         case 12:
           return"Check Employee Attendance";
+        case 13:
+          return "Create Project";
 
         default:
           return "Home";
@@ -406,24 +467,37 @@
     }
 
     Widget _buildProfileImage() {
-      if (kIsWeb) {
-        return webImage != null
-            ? Image.memory(
+      if (profilePicture != null) {
+        return Image.memory(
+          profilePicture!,
+          fit: BoxFit.cover,
+          width: 160,
+          height: 160,
+        );
+      }
+
+      // Fallback for web
+      if (kIsWeb && webImage != null) {
+        return Image.memory(
           webImage!,
           fit: BoxFit.cover,
           width: 160,
           height: 160,
-        )
-            : const Icon(Icons.person, color: Colors.white, size: 80);
-      } else {
-        return imagePath != null
-            ? Image.file(
+        );
+      }
+
+      // Fallback for mobile/desktop
+      if (!kIsWeb && imagePath != null) {
+        return Image.file(
           File(imagePath!),
           fit: BoxFit.cover,
           width: 160,
           height: 160,
-        )
-            : const Icon(Icons.person, color: Colors.white, size: 80);
+        );
       }
+
+      // Default placeholder
+      return const Icon(Icons.person, color: Colors.white, size: 80);
     }
+
   }

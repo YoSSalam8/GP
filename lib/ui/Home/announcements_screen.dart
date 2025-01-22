@@ -1,13 +1,59 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
-class AnnouncementsScreen extends StatelessWidget {
-  const AnnouncementsScreen({super.key});
+class AnnouncementsScreen extends StatefulWidget {
+  final String companyId;
+
+  const AnnouncementsScreen({super.key, required this.companyId});
+
+  @override
+  State<AnnouncementsScreen> createState() => _AnnouncementsScreenState();
+}
+
+class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
+  List<dynamic> announcements = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAnnouncements();
+  }
+
+  Future<void> _fetchAnnouncements() async {
+    try {
+      final response = await http.get(
+        Uri.parse("http://localhost:8080/api/announcements/company/${widget.companyId}"),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          announcements = json.decode(response.body);
+          isLoading = false;
+        });
+      } else {
+        _showError("Failed to fetch announcements: ${response.body}");
+      }
+    } catch (e) {
+      _showError("An error occurred: $e");
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+    setState(() {
+      isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        bool isWeb = constraints.maxWidth > 600; // Web if width > 600 pixels
+        bool isWeb = constraints.maxWidth > 600;
 
         return Scaffold(
           body: Container(
@@ -21,10 +67,12 @@ class AnnouncementsScreen extends StatelessWidget {
             child: Center(
               child: ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: isWeb ? 1000 : double.infinity),
-                child: ListView(
+                child: isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : ListView(
                   padding: EdgeInsets.symmetric(
                     vertical: 20,
-                    horizontal: isWeb ? 40 : 16, // Extra padding for web
+                    horizontal: isWeb ? 40 : 16,
                   ),
                   children: [
                     Center(
@@ -39,7 +87,7 @@ class AnnouncementsScreen extends StatelessWidget {
                           Text(
                             "Latest Announcements",
                             style: TextStyle(
-                              fontSize: isWeb ? 32 : 24, // Larger font for web
+                              fontSize: isWeb ? 32 : 24,
                               fontWeight: FontWeight.bold,
                               color: const Color(0xFF133E87),
                             ),
@@ -48,26 +96,15 @@ class AnnouncementsScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    _buildAnnouncementCard(
-                      title: "Office Maintenance",
-                      date: "7 January 2025",
-                      content: "The office will remain closed on Friday for maintenance purposes.",
-                      isWeb: isWeb,
-                    ),
-                    const SizedBox(height: 20),
-                    _buildAnnouncementCard(
-                      title: "Team Meeting",
-                      date: "6 January 2025",
-                      content: "Join the all-hands meeting tomorrow at 10:00 AM in the main hall.",
-                      isWeb: isWeb,
-                    ),
-                    const SizedBox(height: 20),
-                    _buildAnnouncementCard(
-                      title: "Holiday Announcement",
-                      date: "1 January 2025",
-                      content: "The company will observe a public holiday on 15 January 2025.",
-                      isWeb: isWeb,
-                    ),
+                    ...announcements.map((announcement) {
+                      return _buildAnnouncementCard(
+                        title: announcement["title"],
+                        content: announcement["text"],
+                        postedBy: announcement["postedByName"],
+                        postedByEmail: announcement["postedByEmail"],
+                        isWeb: isWeb,
+                      );
+                    }).toList(),
                   ],
                 ),
               ),
@@ -80,15 +117,17 @@ class AnnouncementsScreen extends StatelessWidget {
 
   Widget _buildAnnouncementCard({
     required String title,
-    required String date,
     required String content,
+    required String postedBy,
+    required String postedByEmail,
     required bool isWeb,
   }) {
     return Card(
       elevation: 6,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      margin: const EdgeInsets.only(bottom: 20),
       child: Padding(
-        padding: EdgeInsets.all(isWeb ? 24 : 16), // More padding for web
+        padding: EdgeInsets.all(isWeb ? 24 : 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -96,15 +135,15 @@ class AnnouncementsScreen extends StatelessWidget {
               children: [
                 Icon(
                   Icons.announcement_rounded,
-                  color: isWeb ? Colors.blue.shade800 : Colors.blueAccent, // Slightly different color for web
-                  size: isWeb ? 32 : 24, // Larger icon for web
+                  color: isWeb ? Colors.blue.shade800 : Colors.blueAccent,
+                  size: isWeb ? 32 : 24,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     title,
                     style: TextStyle(
-                      fontSize: isWeb ? 26 : 18, // Larger title font for web
+                      fontSize: isWeb ? 26 : 18,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
@@ -114,9 +153,9 @@ class AnnouncementsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              "📅 $date",
+              "Posted by: $postedBy ($postedByEmail)",
               style: TextStyle(
-                fontSize: isWeb ? 20 : 14,
+                fontSize: isWeb ? 18 : 14,
                 color: Colors.grey.shade600,
               ),
             ),

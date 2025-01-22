@@ -26,7 +26,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
     AdminSalaryCalculationPage(),
     AdminAbsenceVacationPage(),
     AdminJobInterviewsPage(),
-    AdminRequestsPage(),
+
     // Add the Admin Check-In/Out page here
   ];
 

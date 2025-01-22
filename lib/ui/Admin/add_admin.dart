@@ -2,15 +2,15 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-class AddEmployeeScreen extends StatefulWidget {
-  final String companyId; // Receive company ID
-  const AddEmployeeScreen({super.key, required this.companyId});
+class AddAdmin extends StatefulWidget {
+  final int companyId; // Receive company ID
+  const AddAdmin({super.key, required this.companyId});
 
   @override
-  State<AddEmployeeScreen> createState() => _AddEmployeeScreenState();
+  State<AddAdmin> createState() => _AddAdminState();
 }
 
-class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
+class _AddAdminState extends State<AddAdmin> {
   final TextEditingController firstNameController = TextEditingController();
   final TextEditingController lastNameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
@@ -19,8 +19,6 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
   final TextEditingController salaryController = TextEditingController();
   final TextEditingController addressController = TextEditingController();
   final TextEditingController skillsController = TextEditingController();
-  final TextEditingController supervisorIdController = TextEditingController();
-  final TextEditingController supervisorEmailController = TextEditingController();
 
 
   List<String> skills = [];
@@ -34,55 +32,14 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
 
   final List<String> workTimeOptions = ["SUNDAY_TO_THURSDAY", "MONDAY_TO_FRIDAY"];
   final List<String> employeeTypes = ["FULL_TIME", "PART_TIME", "TRAINEE"]; // Add this line
-  List<Map<String, dynamic>> supervisors = [];
-  List<Map<String, dynamic>> filteredSupervisors = [];
+
 
   @override
   void initState() {
     super.initState();
-    _fetchCompanyDetails();
-    _fetchSupervisors();// Fetch company details on screen load
-  }
-  Future<void> _fetchSupervisors() async {
-    final url = 'http://localhost:8080/api/employees/company/${widget.companyId}/employees';
-    try {
-      final response = await http.get(Uri.parse(url));
-      if (response.statusCode == 200) {
-        setState(() {
-          supervisors = List<Map<String, dynamic>>.from(json.decode(response.body));
-          filteredSupervisors = supervisors;
-        });
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to fetch supervisors: ${response.body}')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-    }
+    _fetchCompanyDetails(); // Fetch company details on screen load
   }
 
-  void _filterSupervisors(String query) {
-    setState(() {
-      if (query.isEmpty) {
-        filteredSupervisors = supervisors;
-      } else {
-        filteredSupervisors = supervisors.where((supervisor) {
-          final name = supervisor['name'].toLowerCase();
-          final id = supervisor['id'].toString();
-          return name.contains(query.toLowerCase()) || id.contains(query);
-        }).toList();
-      }
-    });
-  }
-
-  void _selectSupervisor(Map<String, dynamic> supervisor) {
-    setState(() {
-      supervisorIdController.text = supervisor['id'].toString();
-      supervisorEmailController.text = supervisor['email'];
-      filteredSupervisors = supervisors; // Reset filtered list
-    });
-  }
   Future<void> _fetchCompanyDetails() async {
     final url = 'http://localhost:8080/api/companies/${widget.companyId}';
 
@@ -126,11 +83,10 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
     final url = 'http://localhost:8080/api/employees/invite/${widget.companyId}';
     final employeeId = int.tryParse(employeeIdController.text);
     final salary = double.tryParse(salaryController.text);
-    final supervisorId = int.tryParse(supervisorIdController.text);
 
-    if (employeeId == null || salary == null || supervisorId == null) {
+    if (employeeId == null || salary == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter valid numeric values for Employee ID, Salary, and Supervisor ID.')),
+        const SnackBar(content: Text('Please enter valid numeric values for Employee ID and Salary.')),
       );
       return;
     }
@@ -141,16 +97,13 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
       "name": "${firstNameController.text.trim()} ${lastNameController.text.trim()}",
       "phoneNumber": phoneNumberController.text.trim(),
       "address": addressController.text.trim(),
+      "salary":salary,
       "skills": skills.join(", "), // Convert skills list to a comma-separated string
       "type": employeeType,
       "departmentId": int.parse(selectedDepartmentId!), // Convert to integer
       "workTitleId": int.parse(selectedWorkTitleId!), // Convert to integer
       "workScheduleType": selectedWorkTime,
       "overtimeAllowed": isOvertimeAllowed,
-      "supervisorId": {
-        "id": supervisorId,
-        "email": supervisorEmailController.text.trim(),
-      }
     };
 
     try {
@@ -171,7 +124,6 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
       );
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -240,10 +192,6 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                       });
                     }),
                     const SizedBox(height: 16),
-                    _buildSupervisorIdField(),
-                    const SizedBox(height: 16),
-                    _buildSupervisorEmailField(),
-                    const SizedBox(height: 16),
                     _buildSkillsField(),
                     const SizedBox(height: 16),
                     Row(
@@ -281,9 +229,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                               selectedWorkTitleId == null ||
                               selectedWorkTime == null ||
                               selectedWorkTime == null ||
-                              employeeType == null ||
-                              supervisorIdController.text.isEmpty ||
-                              supervisorEmailController.text.isEmpty) {
+                              employeeType == null) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text("Please fill all fields before submitting.")),
                             );
@@ -363,63 +309,6 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
     );
   }
 
-  Widget _buildSupervisorIdField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "Supervisor ID",
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 10),
-        TextField(
-          controller: supervisorIdController,
-          decoration: InputDecoration(
-            hintText: "Enter or search for Supervisor ID",
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-            filled: true,
-            fillColor: Colors.grey.shade100,
-          ),
-          onChanged: (query) => _filterSupervisors(query),
-        ),
-        const SizedBox(height: 10),
-        if (filteredSupervisors.isNotEmpty)
-          Container(
-            height: 150,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(10),
-              color: Colors.white,
-            ),
-            child: ListView.builder(
-              itemCount: filteredSupervisors.length,
-              itemBuilder: (context, index) {
-                final supervisor = filteredSupervisors[index];
-                return ListTile(
-                  title: Text(supervisor['name']),
-                  subtitle: Text(supervisor['email']),
-                  trailing: Text("ID: ${supervisor['id']}"),
-                  onTap: () => _selectSupervisor(supervisor),
-                );
-              },
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildSupervisorEmailField() {
-    return TextField(
-      controller: supervisorEmailController,
-      readOnly: true,
-      decoration: InputDecoration(
-        labelText: "Supervisor Email",
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        filled: true,
-        fillColor: Colors.grey.shade200,
-      ),
-    );
-  }
 
   Widget _buildTextField(String label, TextEditingController controller, IconData icon, String helperText) {
     return TextField(

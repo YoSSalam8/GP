@@ -1,44 +1,60 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
-class VacationViewScreen extends StatelessWidget {
-  const VacationViewScreen({Key? key}) : super(key: key);
+class VacationViewScreen extends StatefulWidget {
+  final String employeeId;
+  final String employeeEmail;
+
+  const VacationViewScreen({
+    Key? key,
+    required this.employeeId,
+    required this.employeeEmail,
+  }) : super(key: key);
+
+  @override
+  State<VacationViewScreen> createState() => _VacationViewScreenState();
+}
+
+class _VacationViewScreenState extends State<VacationViewScreen> {
+  List<dynamic> vacationRequests = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchVacationRequests();
+  }
+
+  Future<void> _fetchVacationRequests() async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+            "http://localhost:8080/api/leave-requests/employee/${widget.employeeId}/${widget.employeeEmail}"),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          vacationRequests = json.decode(response.body);
+          isLoading = false;
+        });
+      } else {
+        _showError("Failed to fetch vacation requests: ${response.body}");
+      }
+    } catch (e) {
+      _showError("An error occurred: $e");
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
 
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
     bool isWeb = screenWidth > 600;
     double contentWidth = isWeb ? screenWidth * 0.7 : screenWidth * 0.9;
-
-    // Sample vacation request data
-    final List<Map<String, dynamic>> vacationRequests = [
-      {
-        "id": "1",
-        "startDate": "2024-02-01",
-        "endDate": "2024-02-05",
-        "days": 5,
-        "absenceType": "Holiday",
-        "status": "Accepted",
-        "supervisorMessage": "Enjoy your time off!"
-      },
-      {
-        "id": "2",
-        "startDate": "2024-03-10",
-        "endDate": "2024-03-15",
-        "days": 6,
-        "absenceType": "Unpaid Leave",
-        "status": "Rejected",
-        "supervisorMessage": "Unfortunately, we cannot approve this request due to workload."
-      },
-      {
-        "id": "3",
-        "startDate": "2024-04-01",
-        "endDate": "2024-04-02",
-        "days": 2,
-        "absenceType": "Sickness",
-        "status": "Pending",
-        "supervisorMessage": null
-      },
-    ];
 
     return Scaffold(
       body: Container(
@@ -53,13 +69,17 @@ class VacationViewScreen extends StatelessWidget {
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: contentWidth),
-            child: ListView.builder(
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : vacationRequests.isNotEmpty
+                ? ListView.builder(
               itemCount: vacationRequests.length,
               itemBuilder: (context, index) {
                 final request = vacationRequests[index];
                 return _buildVacationCard(request, isWeb);
               },
-            ),
+            )
+                : _buildNoRequestsWidget(),
           ),
         ),
       ),
@@ -71,7 +91,7 @@ class VacationViewScreen extends StatelessWidget {
     IconData statusIcon;
 
     switch (request["status"]) {
-      case "Accepted":
+      case "Approved":
         statusColor = Colors.green;
         statusIcon = Icons.check_circle;
         break;
@@ -119,9 +139,9 @@ class VacationViewScreen extends StatelessWidget {
             // Vacation Type and Days
             Row(
               children: [
-                _buildDetailRow(Icons.category, "Absence Type:", request["absenceType"]),
+                _buildDetailRow(Icons.category, "Absence Type:", request["leaveTypeName"]),
                 const SizedBox(width: 20),
-                _buildDetailRow(Icons.calendar_today, "Days:", "${request["days"]} days"),
+                _buildDetailRow(Icons.calendar_today, "Days:", "${request["duration"]} days"),
               ],
             ),
             const SizedBox(height: 10),
@@ -173,11 +193,33 @@ class VacationViewScreen extends StatelessWidget {
           ),
           const SizedBox(height: 5),
           Text(
-            request["supervisorMessage"] ?? "No message provided.",
+            request["remarks"]?.isNotEmpty == true ? request["remarks"] : "No message provided.",
             style: const TextStyle(color: Colors.black54),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildNoRequestsWidget() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          Icons.inbox,
+          size: 80,
+          color: Colors.grey[400],
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          "No vacation requests available.",
+          style: TextStyle(
+            fontSize: 20,
+            color: Colors.black54,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
     );
   }
 }

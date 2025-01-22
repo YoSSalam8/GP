@@ -2,6 +2,7 @@ import 'dart:convert'; // For JSON encoding
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http; // For HTTP requests
 import 'package:graduation_project/ui/Login/login_page.dart';
+import 'package:graduation_project/ui/Admin/add_admin.dart';
 
 class MultiStageSignUp extends StatefulWidget {
   const MultiStageSignUp({super.key});
@@ -116,16 +117,30 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
 
   void sendRequest(BuildContext context, Map<String, dynamic> requestPayload) async {
     const String url = "http://localhost:8080/api/companies/create-structure";
+    int companyId ; // Variable to store the company ID
+
 
     try {
       final response = await http.post(
         Uri.parse(url),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(requestPayload),
+
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        final responseData = jsonDecode(response.body);
+        companyId = responseData['id']; // Extract company ID
+        print("Company ID: $companyId");
+        print(response);
+        print(jsonEncode(requestPayload));
         showSuccessDialog(context);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AddAdmin(companyId: companyId), // Convert to string if needed for AddAdmin
+          ),
+        );
       } else {
         showErrorDialog(context, response.body);
       }
