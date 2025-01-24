@@ -6,6 +6,7 @@ class AdminRequestsPage extends StatefulWidget {
   final String companyId;
   final String approverId;
   final String approverEmail;
+
   const AdminRequestsPage({
     super.key,
     required this.companyId,
@@ -28,6 +29,10 @@ class _AdminRequestsPageState extends State<AdminRequestsPage> {
   }
 
   Future<void> _fetchLeaveRequests() async {
+    setState(() {
+      isLoading = true;
+    });
+
     try {
       final response = await http.get(
         Uri.parse("http://localhost:8080/api/leave-requests/company/${widget.companyId}"),
@@ -40,13 +45,16 @@ class _AdminRequestsPageState extends State<AdminRequestsPage> {
               .decode(response.body)
               .where((request) => request["status"] == "Pending")
               .toList();
-          isLoading = false;
         });
       } else {
         _showError("Failed to fetch leave requests: ${response.body}");
       }
     } catch (e) {
       _showError("An error occurred: $e");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -118,6 +126,16 @@ class _AdminRequestsPageState extends State<AdminRequestsPage> {
     double contentWidth = isWeb ? screenWidth * 0.7 : screenWidth * 0.9;
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Leave Requests'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh Requests',
+            onPressed: _fetchLeaveRequests, // Reload the requests
+          ),
+        ],
+      ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(

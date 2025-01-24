@@ -26,30 +26,24 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
   List<Map<String, dynamic>> leaveTypes = [];
 
   final List<Map<String, dynamic>> authorities = [
-    {"id": 1, "name": "EDIT_PERSONAL_DETAILS"},
-    {"id": 2, "name": "EDIT_EMPLOYEE_DETAILS"},
-    {"id": 3, "name": "VIEW_EMPLOYEE_ATTENDANCE"},
-    {"id": 4, "name": "VIEW_PERSONAL_ATTENDANCE"},
-    {"id": 5, "name": "ACCEPT_LEAVE_REQUEST"},
-    {"id": 6, "name": "DENY_LEAVE_REQUEST"},
-    {"id": 7, "name": "APPROVE_TIMESHEET"},
-    {"id": 8, "name": "REJECT_TIMESHEET"},
-    {"id": 9, "name": "ADD_EMPLOYEE"},
-    {"id": 10, "name": "REMOVE_EMPLOYEE"},
-    {"id": 11, "name": "LOCK_EMPLOYEE"},
-    {"id": 12, "name": "UNLOCK_EMPLOYEE"},
-    {"id": 13, "name": "ADD_DEPARTMENT"},
-    {"id": 14, "name": "REMOVE_DEPARTMENT"},
-    {"id": 15, "name": "UPDATE_DEPARTMENT"},
-    {"id": 16, "name": "VIEW_COMPANY_DETAILS"},
-    {"id": 17, "name": "ADD_COUNTRIES"},
-    {"id": 18, "name": "REMOVE_COUNTRIES"},
-    {"id": 19, "name": "ADD_TAX_CODES"},
-    {"id": 20, "name": "REMOVE_TAX_CODES"},
-    {"id": 21, "name": "MANAGE_LEAVE_TYPES"},
-    {"id": 22, "name": "ACCEPT_DENY_LEAVES"},
-    {"id": 23, "name": "VIEW_PAYROLL_DETAILS"},
-    {"id": 24, "name": "EDIT_PAYROLL_DETAILS"},
+    {"id": 17, "name": "ATTENDANCE" , "mandatory": true},
+    {"id": 18, "name": "VIEW_MONTHLY_ATTENDANCE" ,"mandatory": false},
+    {"id": 19, "name": "VIEW_PROFILE" ,"mandatory": true},
+    {"id": 20, "name": "EDIT_PROFILE","mandatory": false},
+    {"id": 21, "name": "ADD_EMPLOYEE","mandatory": false},
+    {"id": 22, "name": "EDIT_EMPLOYEE","mandatory": false},
+    {"id": 23, "name": "EDIT_COMPANY","mandatory": false},
+    {"id": 24, "name": "CREATE_ANNOUNCEMENT","mandatory": false},
+    {"id": 25, "name": "VIEW_ANNOUNCEMENTS","mandatory": false},
+    {"id": 26, "name": "PAYROLL","mandatory": false},
+    {"id": 27, "name": "REQUEST_LEAVE","mandatory": false},
+    {"id": 28, "name": "APPROVE_REJECT_LEAVES","mandatory": false},
+    {"id": 29, "name": "VIEW_LEAVE","mandatory": false},
+    {"id": 30, "name": "VIEW_ORGANIZATION_TREE","mandatory": false},
+    {"id": 31, "name": "CREATE_PROJECT","mandatory": false},
+    {"id": 32, "name": "VIEW_PROJECT","mandatory": false},
+    {"id": 33, "name": "ADD_HOURS_INTO_PROJECT","mandatory": false},
+    {"id": 34, "name": "EDIT_PROJECT","mandatory": false},
   ];
 
   final List<String> countries = [
@@ -111,9 +105,16 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
 
   void addWorkTitle(int departmentIndex) {
     setState(() {
-      departments[departmentIndex]["workTitles"].add({"name": "", "authorityIds": []});
+      departments[departmentIndex]["workTitles"].add({
+        "name": "",
+        "authorityIds": authorities
+            .where((auth) => auth["mandatory"] == true) // Add mandatory authorities
+            .map((auth) => auth["id"])
+            .toList(),
+      });
     });
   }
+
 
   void sendRequest(BuildContext context, Map<String, dynamic> requestPayload) async {
     const String url = "http://localhost:8080/api/companies/create-structure";
@@ -693,23 +694,17 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
                             spacing: 8,
                             runSpacing: 8,
                             children: authorities.map((auth) {
-                              bool isSelected =
-                              (workTitle["authorityIds"] ?? [])
-                                  .contains(auth["id"]);
+                              bool isSelected = (workTitle["authorityIds"] ?? []).contains(auth["id"]);
+                              bool isMandatory = auth["mandatory"] == true;
 
                               return AnimatedContainer(
                                 duration: const Duration(milliseconds: 300),
                                 curve: Curves.easeInOut,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? Colors.blue.shade900
-                                      : Colors.grey.shade200,
+                                  color: isSelected ? Colors.blue.shade900 : Colors.grey.shade200,
                                   border: Border.all(
-                                    color: isSelected
-                                        ? Colors.green.shade700
-                                        : Colors.grey.shade400,
+                                    color: isSelected ? Colors.green.shade700 : Colors.grey.shade400,
                                   ),
                                   borderRadius: BorderRadius.circular(10),
                                   boxShadow: isSelected
@@ -723,30 +718,26 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
                                       : [],
                                 ),
                                 child: GestureDetector(
-                                  onTap: () {
+                                  onTap: isMandatory
+                                      ? null // Disable interaction for mandatory authorities
+                                      : () {
                                     setState(() {
                                       if (isSelected) {
-                                        workTitle["authorityIds"]
-                                            .remove(auth["id"]);
+                                        workTitle["authorityIds"].remove(auth["id"]);
                                       } else {
-                                        workTitle["authorityIds"]
-                                            .add(auth["id"]);
+                                        workTitle["authorityIds"].add(auth["id"]);
                                       }
                                     });
                                   },
-                                  child: AnimatedOpacity(
-                                    duration: const Duration(milliseconds: 300),
-                                    opacity: 1.0,
-                                    child: Text(
-                                      auth["name"],
-                                      style: TextStyle(
-                                        color: isSelected
-                                            ? Colors.white
-                                            : Colors.black87,
-                                        fontWeight: isSelected
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                      ),
+                                  child: Text(
+                                    auth["name"],
+                                    style: TextStyle(
+                                      color: isSelected ? Colors.white : Colors.black87,
+                                      fontWeight: isMandatory
+                                          ? FontWeight.bold // Highlight mandatory authorities
+                                          : isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
                                     ),
                                   ),
                                 ),

@@ -45,6 +45,8 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
       curve: Curves.easeInOut,
     );
     _controller.forward();
+    _fetchAttendanceStatus();
+
   }
 
   @override
@@ -52,7 +54,47 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
     _controller.dispose();
     super.dispose();
   }
+  Future<void> _fetchAttendanceStatus() async {
+    final url = 'http://localhost:8080/api/attendance/employee/${widget.employeeId}/${widget.email}/attendance';
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        List<dynamic> attendanceData = jsonDecode(response.body);
+        if (attendanceData.isNotEmpty) {
+          // Parse the latest record
+          Map<String, dynamic> latestRecord = attendanceData.last;
 
+          DateTime checkInTime = DateTime.parse(latestRecord['checkInTime']);
+          DateTime today = DateTime.now();
+
+          // Check if latest check-in is today
+          if (isSameDate(checkInTime, today)) {
+            setState(() {
+              checkIn = DateFormat('hh:mm').format(checkInTime);
+              if (latestRecord['checkOutTime'] != null) {
+                DateTime checkOutTime = DateTime.parse(latestRecord['checkOutTime']);
+                checkOut = DateFormat('hh:mm').format(checkOutTime);
+              } else {
+                checkOut = "--/--"; // Pending check-out
+              }
+            });
+          } else {
+            setState(() {
+              checkIn = "--/--";
+              checkOut = "--/--";
+            });
+          }
+        }
+      } else {
+        print("Failed to fetch attendance: ${response.body}");
+      }
+    } catch (e) {
+      print("Error fetching attendance: $e");
+    }
+  }
+  bool isSameDate(DateTime date1, DateTime date2) {
+    return date1.year == date2.year && date1.month == date2.month && date1.day == date2.day;
+  }
   Future<void> _makePostRequest(String url, Map<String, dynamic> data) async {
     try {
       final response = await http.post(

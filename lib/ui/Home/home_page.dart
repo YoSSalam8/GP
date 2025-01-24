@@ -39,6 +39,7 @@ import 'package:graduation_project/ui/Admin/create_project.dart';
   class _HomePageState extends State<HomePage> {
     double screenHeight = 0;
     double screenWidth = 0;
+    List<String> userAuthorities = [];
     Uint8List? webImage; // For web images
     String? imagePath; // For mobile/desktop images
 
@@ -49,6 +50,110 @@ import 'package:graduation_project/ui/Admin/create_project.dart';
     File? _profileImage; // To store the selected image file
     bool isHovering = false; // Added this variable to fix the error
     Uint8List? profilePicture;
+
+
+
+    final List<String> orderedAuthorities = [
+      "ATTENDANCE",
+      "VIEW_MONTHLY_ATTENDANCE",
+      "VIEW_PROFILE",
+      "EDIT_PROFILE",
+      "ADD_EMPLOYEE",
+      "EDIT_EMPLOYEE",
+      "EDIT_COMPANY",
+      "CREATE_ANNOUNCEMENT",
+      "VIEW_ANNOUNCEMENTS",
+      "PAYROLL",
+      "REQUEST_LEAVE",
+      "APPROVE_REJECT_LEAVES",
+      "VIEW_LEAVE",
+      "VIEW_ORGANIZATION_TREE",
+      "CREATE_PROJECT",
+    ];
+
+    final Map<String, Map<String, dynamic>> authorityToMenu = {
+      "ATTENDANCE": {
+        "title": "Today",
+        "icon": Icons.home,
+        "page": (String empId, String email, String id) =>
+            TodayScreen(employeeId: empId, email: email),
+      },
+      "VIEW_MONTHLY_ATTENDANCE": {
+        "title": "Calendar",
+        "icon": Icons.calendar_month,
+        "page": (String empId, String email, String id) =>
+            CalendarScreen(employeeId: empId, email: email),
+      },
+      "VIEW_PROFILE": {
+        "title": "Employee Details",
+        "icon": Icons.person,
+        "page": (String empId, String email, String id) =>
+            EmployeeProfileScreen(employeeId: empId, email: email),
+      },
+      "EDIT_PROFILE": {
+        "title": "Edit Profile",
+        "icon": Icons.edit,
+        "page": (String empId, String email, String id) =>
+            ProfileScreen(companyId: id),
+      },
+      "ADD_EMPLOYEE": {
+        "title": "Add Employee",
+        "icon": Icons.person_add,
+        "page": (String empId, String email, String id) =>
+            AddEmployeeScreen(companyId: id),
+      },
+      "EDIT_COMPANY": {
+        "title": "Edit Company",
+        "icon": Icons.business,
+        "page": (String empId, String email, String id) =>
+            EditCompanyScreen(companyId: id),
+      },
+      "CREATE_ANNOUNCEMENT": {
+        "title": "Create Announcement",
+        "icon": Icons.campaign,
+        "page": (String empId, String email, String id) =>
+            CreateAnnouncementScreen(
+                employeeId: empId, employeeEmail: email, companyId: id),
+      },
+      "VIEW_ANNOUNCEMENTS": {
+        "title": "Announcements",
+        "icon": Icons.announcement,
+        "page": (String empId, String email, String id) =>
+            AnnouncementsScreen(companyId: id),
+      },
+      "REQUEST_LEAVE": {
+        "title": "Vacation Request",
+        "icon": Icons.request_page,
+        "page": (String empId, String email, String id) =>
+            VacationRequestScreen(
+                employeeId: empId, employeeEmail: email, companyId: id),
+      },
+      "APPROVE_REJECT_LEAVES": {
+        "title": "Vacation Approval",
+        "icon": Icons.approval,
+        "page": (String empId, String email, String id) => AdminRequestsPage(
+            companyId: id, approverId: empId, approverEmail: email),
+      },
+      "VIEW_LEAVE": {
+        "title": "View Vacation Request",
+        "icon": Icons.visibility,
+        "page": (String empId, String email, String id) =>
+            VacationViewScreen(employeeId: empId, employeeEmail: email),
+      },
+      "VIEW_ORGANIZATION_TREE": {
+        "title": "Organizations",
+        "icon": Icons.account_tree,
+        "page": (String empId, String email, String id) =>
+            OrganizationTreeScreen(companyId: id),
+      },
+      "CREATE_PROJECT": {
+        "title": "Create Project",
+        "icon": Icons.create,
+        "page": (String empId, String email, String id) =>
+            CreateProject(companyId: id),
+      },
+    };
+
 
 
 
@@ -90,6 +195,8 @@ import 'package:graduation_project/ui/Admin/create_project.dart';
           id = companyId.toString(); // Use the companyId in your app if needed
           empId = payloadMap['employeeId'].toString();
           email = payloadMap['sub'].toString();
+          userAuthorities = List<String>.from(payloadMap['authorities']);
+
         });
       } catch (e) {
         print("Error decoding token: $e");
@@ -110,6 +217,45 @@ import 'package:graduation_project/ui/Admin/create_project.dart';
         print("Error fetching profile picture: $e");
       }
     }
+
+    List<Widget> _buildMenuItems() {
+      final filteredAuthorities = orderedAuthorities
+          .where((auth) => userAuthorities.contains(auth) && authorityToMenu.containsKey(auth))
+          .toList();
+
+      return List.generate(filteredAuthorities.length, (index) {
+        final authority = filteredAuthorities[index];
+        final menu = authorityToMenu[authority]!;
+        return ListTile(
+          leading: Icon(menu["icon"]),
+          title: Text(menu["title"]),
+          onTap: () {
+            if (currentIndex != index) {
+              setState(() {
+                currentIndex = index;
+              });
+            }
+            Navigator.pop(context); // Close the drawer
+          },
+        );
+      });
+    }
+
+
+
+    List<Widget> _buildPages() {
+      final filteredAuthorities = orderedAuthorities
+          .where((auth) => userAuthorities.contains(auth) && authorityToMenu.containsKey(auth))
+          .toList();
+
+      return filteredAuthorities.map((authority) {
+        final pageFactory = authorityToMenu[authority]!["page"] as Widget Function(String, String, String);
+        return pageFactory(empId, email, id);
+      }).toList();
+    }
+
+
+
 
     Future<void> pickUploadProfilePic() async {
       final picker = ImagePicker();
@@ -275,7 +421,11 @@ import 'package:graduation_project/ui/Admin/create_project.dart';
 
       return Scaffold(
         appBar: AppBar(
-          title: Text(getPageTitle(currentIndex)), // Dynamic page title
+          title: Text(
+            authorityToMenu[
+            orderedAuthorities.where((auth) => userAuthorities.contains(auth)).toList()[currentIndex]
+            ]?["title"] ?? "Home", // Fallback to "Home" if null
+          ),
           backgroundColor: Colors.blue.shade900,
           leading: Builder(
             builder: (BuildContext context) {
@@ -329,142 +479,36 @@ import 'package:graduation_project/ui/Admin/create_project.dart';
                 ),
               ),
 
+              ..._buildMenuItems(),
+              const Divider(),
               ListTile(
-                leading: Icon(Icons.home),
-                title: Text("Today"),
-                onTap: () => _navigateTo(0),
-              ),
-              ListTile(
-                leading: Icon(Icons.calendar_month),
-                title: Text("Calendar"),
-                onTap: () => _navigateTo(1),
-              ),
-              ListTile(
-                leading: Icon(Icons.person),
-                title: Text("Employee Details"),
-                onTap: () => _navigateTo(2),
-              ),
-              ListTile(
-                leading: Icon(Icons.account_circle),
-                title: Text("Edit Profile"),
-                onTap: () => _navigateTo(3),
-              ),
-              ListTile(
-                leading: Icon(Icons.request_page),
-                title: Text("Vacation Request"),
-                onTap: () => _navigateTo(4),
-              ),
-              ListTile(leading: const Icon(Icons.person_add), title: const Text("Add Employee"), onTap: () => _navigateTo(5)),
-              ListTile(
-                leading: const Icon(Icons.edit),
-                title: const Text("Edit Company"),
-                onTap: () => _navigateTo(6)
-              ),            ListTile(
-                leading: const Icon(Icons.announcement),
-                title: const Text("Announcements"),
-                onTap: () => _navigateTo(7), // Add a new index for Announcements
-              ),
-              ListTile(
-                leading: const Icon(Icons.campaign),
-                title: const Text("Create Announcement"),
-                onTap: () => _navigateTo(8), // New index for Create Announcement screen
-              ),
-              ListTile(
-                leading: const Icon(Icons.account_tree_outlined),
-                title: const Text("Organization"),
-                onTap: () => _navigateTo(9), // New index for Department Tree page
-              ),
-              ListTile(
-                leading: const Icon(Icons.request_page),
-                title: const Text("View Vacation Request"),
-                onTap: () => _navigateTo(10), // New index for Department Tree page
-              ),
-              ListTile(
-                leading: const Icon(Icons.request_page),
-                title: const Text(" Vacation Approval"),
-                onTap: () => _navigateTo(11), // New index for Department Tree page
-              ),
-
-              ListTile(
-                leading: const Icon(Icons.person),
-                title: const Text(" Check Employee Attendance"),
-                onTap: () => _navigateTo(12), // New index for Department Tree page
-              ),
-              ListTile(
-                leading: const Icon(Icons.person),
-                title: const Text(" Create Project"),
-                onTap: () => _navigateTo(13), // New index for Department Tree page
-              ),
-
-
-              Divider(),
-              ListTile(
-                leading: Icon(Icons.logout),
-                title: Text("Logout"),
-                onTap: _showLogoutDialog,
+                leading: const Icon(Icons.logout),
+                title: const Text("Logout"),
+                onTap: () {
+                  Navigator.pushReplacement(
+                      context, MaterialPageRoute(builder: (_) => const Login()));
+                },
               ),
             ],
           ),
         ),
-
-        body: IndexedStack(
-          index: currentIndex,
-          children:  [
-            TodayScreen(employeeId: empId, email: email,),
-            CalendarScreen(employeeId: empId, email: email,),
-            EmployeeProfileScreen(employeeId: empId, email: email,),
-            ProfileScreen(companyId: id),
-            VacationRequestScreen(employeeId: empId, employeeEmail: email,companyId: id),
-            AddEmployeeScreen(companyId: id),
-            EditCompanyScreen(companyId: id),
-            AnnouncementsScreen(companyId: id),
-            CreateAnnouncementScreen(employeeId: empId, employeeEmail: email,companyId: id),
-            OrganizationTreeScreen(companyId: id),
-            VacationViewScreen(employeeId: empId, employeeEmail: email,),
-            AdminRequestsPage(approverId: empId, approverEmail: email,companyId: id),
-            AdminAbsenceVacationPage(),
-            CreateProject(companyId: id),
-          ],
-        ),
+        body: IndexedStack(index: currentIndex, children: _buildPages()),
       );
     }
 
     // Function to get the page title dynamically
     String getPageTitle(int index) {
-      switch (index) {
-        case 0:
-          return "Today Attendance";
-        case 1:
-          return "Monthly Attendance";
-        case 2:
-          return "Employee Profile";
-        case 3:
-          return "Profile";
-        case 4:
-          return "Vacation Request";
-        case 5:
-          return "Add Employee";
-        case 6:
-          return "Edit Company";
-        case 7:
-          return "Announcements";
-        case 8:
-          return "Create Announcement";
-        case 9:
-          return "Organization";
-        case 10:
-          return "View Vacation Request";
-        case 11:
-          return"Vacation Approval";
-        case 12:
-          return"Check Employee Attendance";
-        case 13:
-          return "Create Project";
+      final filteredAuthorities = orderedAuthorities
+          .where((auth) => userAuthorities.contains(auth) && authorityToMenu.containsKey(auth))
+          .toList();
 
-        default:
-          return "Home";
+      if (index < filteredAuthorities.length) {
+        return authorityToMenu[filteredAuthorities[index]]?["title"] ?? "Home";
       }
+      return "Home"; // Fallback title
     }
+
+
 
     Widget _buildProfileImage() {
       if (profilePicture != null) {

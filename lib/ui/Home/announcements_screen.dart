@@ -22,6 +22,10 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
   }
 
   Future<void> _fetchAnnouncements() async {
+    setState(() {
+      isLoading = true;
+    });
+
     try {
       final response = await http.get(
         Uri.parse("http://localhost:8080/api/announcements/company/${widget.companyId}"),
@@ -30,13 +34,16 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
       if (response.statusCode == 200) {
         setState(() {
           announcements = json.decode(response.body);
-          isLoading = false;
         });
       } else {
         _showError("Failed to fetch announcements: ${response.body}");
       }
     } catch (e) {
       _showError("An error occurred: $e");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -56,6 +63,16 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
         bool isWeb = constraints.maxWidth > 600;
 
         return Scaffold(
+          appBar: AppBar(
+            title: const Text('Announcements'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                tooltip: 'Refresh Announcements',
+                onPressed: _fetchAnnouncements, // Refresh announcements
+              ),
+            ],
+          ),
           body: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -69,7 +86,8 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                 constraints: BoxConstraints(maxWidth: isWeb ? 1000 : double.infinity),
                 child: isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : ListView(
+                    : announcements.isNotEmpty
+                    ? ListView(
                   padding: EdgeInsets.symmetric(
                     vertical: 20,
                     horizontal: isWeb ? 40 : 16,
@@ -106,6 +124,15 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
                       );
                     }).toList(),
                   ],
+                )
+                    : Center(
+                  child: Text(
+                    "No announcements available.",
+                    style: TextStyle(
+                      fontSize: isWeb ? 24 : 16,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
                 ),
               ),
             ),

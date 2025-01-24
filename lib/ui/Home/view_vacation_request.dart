@@ -27,6 +27,10 @@ class _VacationViewScreenState extends State<VacationViewScreen> {
   }
 
   Future<void> _fetchVacationRequests() async {
+    setState(() {
+      isLoading = true;
+    });
+
     try {
       final response = await http.get(
         Uri.parse(
@@ -43,6 +47,10 @@ class _VacationViewScreenState extends State<VacationViewScreen> {
       }
     } catch (e) {
       _showError("An error occurred: $e");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -57,6 +65,16 @@ class _VacationViewScreenState extends State<VacationViewScreen> {
     double contentWidth = isWeb ? screenWidth * 0.7 : screenWidth * 0.9;
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('My Vacation Requests'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh Requests',
+            onPressed: _fetchVacationRequests, // Refresh the vacation requests
+          ),
+        ],
+      ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(

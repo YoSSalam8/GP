@@ -116,20 +116,36 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
   }
 
+
+
   List<Map<String, dynamic>> _getFilteredData() {
     if (_startDate == null) return [];
 
+    DateTime today = DateTime.now();
+
     return attendanceData.where((record) {
       final checkInTime = record['checkInTime'] as DateTime;
-      if (_endDate == null) {
-        return checkInTime.year == _startDate!.year &&
-            checkInTime.month == _startDate!.month &&
-            checkInTime.day == _startDate!.day;
+      final checkOutTime = record['checkOutTime'];
+
+      // Exclude records from today with null checkOutTime
+      if (isSameDate(checkInTime, today) && checkOutTime == null) {
+        return false;
       }
+
+      // Filter by date range
+      if (_endDate == null) {
+        return isSameDate(checkInTime, _startDate!);
+      }
+
       return checkInTime.isAfter(_startDate!.subtract(const Duration(days: 1))) &&
           checkInTime.isBefore(_endDate!.add(const Duration(days: 1)));
     }).toList();
   }
+
+  bool isSameDate(DateTime date1, DateTime date2) {
+    return date1.year == date2.year && date1.month == date2.month && date1.day == date2.day;
+  }
+
 
   @override
   Widget build(BuildContext context) {
