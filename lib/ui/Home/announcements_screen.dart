@@ -4,8 +4,10 @@ import 'package:http/http.dart' as http;
 
 class AnnouncementsScreen extends StatefulWidget {
   final String companyId;
+  final String token; // Add token parameter
 
-  const AnnouncementsScreen({super.key, required this.companyId});
+
+  const AnnouncementsScreen({super.key, required this.companyId, required this.token});
 
   @override
   State<AnnouncementsScreen> createState() => _AnnouncementsScreenState();
@@ -29,6 +31,10 @@ class _AnnouncementsScreenState extends State<AnnouncementsScreen> {
     try {
       final response = await http.get(
         Uri.parse("http://localhost:8080/api/announcements/company/${widget.companyId}"),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
       );
 
       if (response.statusCode == 200) {

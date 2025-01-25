@@ -5,11 +5,14 @@ import 'package:http/http.dart' as http;
 class VacationViewScreen extends StatefulWidget {
   final String employeeId;
   final String employeeEmail;
+  final String token; // Add token parameter
+
 
   const VacationViewScreen({
     Key? key,
     required this.employeeId,
     required this.employeeEmail,
+    required this.token, // Include token parameter
   }) : super(key: key);
 
   @override
@@ -35,6 +38,10 @@ class _VacationViewScreenState extends State<VacationViewScreen> {
       final response = await http.get(
         Uri.parse(
             "http://localhost:8080/api/leave-requests/employee/${widget.employeeId}/${widget.employeeEmail}"),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}', // Include token in headers
+          'Content-Type': 'application/json',
+        },
       );
 
       if (response.statusCode == 200) {

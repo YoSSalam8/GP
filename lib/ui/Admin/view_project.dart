@@ -1,0 +1,344 @@
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+class ViewProject extends StatefulWidget {
+  final String companyId;
+  final String employeeId;
+  final String employeeEmail;
+  final String token; // Add token parameter
+
+  const ViewProject({
+    super.key,
+    required this.companyId,
+    required this.employeeId,
+    required this.employeeEmail,
+    required this.token,
+  });
+
+  @override
+  State<ViewProject> createState() => _ViewProjectState();
+}
+
+class _ViewProjectState extends State<ViewProject> {
+  List<Map<String, dynamic>> projects = [];
+  final TextEditingController hoursController = TextEditingController();
+  bool isBillable = false;
+  String employeeJobTitle = "";
+
+  Future<void> fetchProjects() async {
+    final url = Uri.parse("http://localhost:8080/api/projects/company/${widget.companyId}");
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          "Authorization": "Bearer ${widget.token}",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> data = json.decode(response.body);
+        setState(() {
+          // Filter projects where the employee is assigned
+          projects = data
+              .where((project) => project["employeeIds"]
+              .any((employee) => employee["id"].toString() == widget.employeeId))
+              .cast<Map<String, dynamic>>()
+              .toList();
+        });
+      } else {
+        throw Exception("Failed to fetch projects.");
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error fetching projects: $e")),
+      );
+    }
+  }
+
+  Future<void> fetchEmployeeJob(Map<String, dynamic> project) async {
+    final url = Uri.parse(
+        "http://localhost:8080/api/project-jobs/${project["id"]}/employee/${widget.employeeId}");
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          "Authorization": "Bearer ${widget.token}",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          employeeJobTitle = data["name"] ?? "No Job Title Assigned";
+          project["jobId"] = data["id"]; // Ensure jobId is assigned
+        });
+      } else {
+        throw Exception("Failed to fetch employee job details.");
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error fetching employee job: $e")),
+      );
+    }
+  }
+
+
+
+  Future<void> submitWorkDetails(Map<String, dynamic> project) async {
+    if (hoursController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill in the hours worked before submitting!")),
+      );
+      return;
+    }
+
+    if (project["jobId"] == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Job ID is missing. Unable to submit work details.")),
+      );
+      return;
+    }
+
+    try {
+      final workDetails = {
+        "projectId": project["id"],
+        "employeeId": {"id": int.parse(widget.employeeId), "email": widget.employeeEmail},
+        "jobId": project["jobId"], // Ensure jobId is not null
+        "hoursWorked": int.parse(hoursController.text),
+        "date": DateTime.now().toIso8601String().split('T')[0], // Current date in YYYY-MM-DD format
+        "isClientBillable": isBillable,
+      };
+
+      print("Submitting work details: ${jsonEncode(workDetails)}"); // Log payload for debugging
+
+      final url = Uri.parse("http://localhost:8080/api/project-hours/assign");
+      final response = await http.post(
+        url,
+        headers: {
+          "Authorization": "Bearer ${widget.token}",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode(workDetails),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Work details submitted successfully!")),
+        );
+        Navigator.pop(context); // Close the modal after submission
+      } else {
+        throw Exception(
+            "Failed to submit work details. Status code: ${response.statusCode}, response: ${response.body}");
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error submitting work details: $e")),
+      );
+    }
+  }
+
+  void showProjectDetailsModal(Map<String, dynamic> project) {
+    hoursController.clear();
+    setState(() {
+      isBillable = false; // Reset the billable switch
+    });
+
+    fetchEmployeeJob(project); // Pass the project to fetchEmployeeJob
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        // Use a `StatefulBuilder` to manage the dialog's state independently
+        return StatefulBuilder(
+          builder: (context, setStateModal) {
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFCBDCEB), Color(0xFF608BC1)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Project Details",
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF133E87),
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      Text(
+                        "Title: ${project["name"]}",
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        "Description: ${project["description"]}",
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.black54,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        "Start Date: ${project["startDate"]}",
+                        style: const TextStyle(fontSize: 16, color: Colors.black87),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        "End Date: ${project["endDate"]}",
+                        style: const TextStyle(fontSize: 16, color: Colors.black87),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        "Your Job: $employeeJobTitle",
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+                      ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        "Work Details",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF133E87),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: hoursController,
+                        decoration: InputDecoration(
+                          labelText: "Hours Worked",
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          prefixIcon: const Icon(Icons.timer),
+                        ),
+                        keyboardType: TextInputType.number,
+                      ),
+                      const SizedBox(height: 20),
+                      SwitchListTile(
+                        title: const Text(
+                          "Is Billable?",
+                          style: TextStyle(fontSize: 16, color: Colors.black87),
+                        ),
+                        value: isBillable,
+                        onChanged: (value) {
+                          // Use setState from StatefulBuilder to update the modal state
+                          setStateModal(() {
+                            isBillable = value;
+                          });
+                        },
+                        activeColor: const Color(0xFF133E87),
+                      ),
+                      const SizedBox(height: 20),
+                      Center(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF133E87),
+                            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 40),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                          ),
+                          onPressed: () => submitWorkDetails(project), // Pass the entire project object
+                          child: const Text(
+                            "Submit Work Details",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    fetchProjects();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          "View Projects",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: const Color(0xFF133E87),
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: fetchProjects,
+          ),
+        ],
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFCBDCEB), Color(0xFF608BC1)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: projects.length,
+          itemBuilder: (context, index) {
+            final project = projects[index];
+            return Card(
+              elevation: 8,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              child: ListTile(
+                title: Text(
+                  project["name"],
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF133E87),
+                  ),
+                ),
+                subtitle: Text(
+                  "Start Date: ${project["startDate"]} | End Date: ${project["endDate"]}",
+                  style: const TextStyle(fontSize: 14, color: Colors.black87),
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios, color: Color(0xFF133E87)),
+                onTap: () => showProjectDetailsModal(project),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}

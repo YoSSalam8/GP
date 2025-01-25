@@ -5,11 +5,15 @@ import 'package:http/http.dart' as http;
 class EmployeeProfileScreen extends StatefulWidget {
   final String employeeId;
   final String email;
+  final String token; // Add token parameter
+
 
   const EmployeeProfileScreen({
     super.key,
     required this.employeeId,
     required this.email,
+    required this.token, // Pass token here
+
   });
 
   @override
@@ -58,7 +62,13 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
   Future<void> _fetchEmployeeData() async {
     final url = 'http://localhost:8080/api/employees/${widget.employeeId}/${widget.email}';
     try {
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}', // Use widget.token here
+          'Content-Type': 'application/json',
+        },
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
@@ -76,7 +86,7 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
           isLoading = false; // Set loading to false after fetching data
         });
       } else {
-        throw Exception('Failed to fetch employee data');
+        throw Exception('Failed to fetch employee data: ${response.body}');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

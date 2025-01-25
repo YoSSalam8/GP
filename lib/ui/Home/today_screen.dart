@@ -11,7 +11,10 @@ import 'dart:convert';
 class TodayScreen extends StatefulWidget {
   final String employeeId;
   final String email;
-  const TodayScreen({super.key, required this.employeeId, required this.email});
+  final String token; // Add the token
+
+  const TodayScreen({super.key, required this.employeeId, required this.email ,    required this.token,
+  });
 
   @override
   State<TodayScreen> createState() => _TodayScreenState();
@@ -55,9 +58,16 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
     super.dispose();
   }
   Future<void> _fetchAttendanceStatus() async {
-    final url = 'http://localhost:8080/api/attendance/employee/${widget.employeeId}/${widget.email}/attendance';
+    final url =
+        'http://localhost:8080/api/attendance/employee/${widget.employeeId}/${widget.email}/attendance';
     try {
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}', // Add the token here
+          'Content-Type': 'application/json',
+        },
+      );
       if (response.statusCode == 200) {
         List<dynamic> attendanceData = jsonDecode(response.body);
         if (attendanceData.isNotEmpty) {
@@ -100,6 +110,7 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
       final response = await http.post(
         Uri.parse(url),
         headers: {
+          'Authorization': 'Bearer ${widget.token}', // Add the token here
           'Content-Type': 'application/json',
         },
         body: jsonEncode(data),
@@ -114,7 +125,6 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
       print('Error making POST request: $e');
     }
   }
-
   void _getLocation() async {
     try {
       List<Placemark> placemarks = await placemarkFromCoordinates(User.lat, User.long);

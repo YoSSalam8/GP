@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.teal,
       ),
-      home: const CalendarScreen(employeeId: '123', email: 'test@example.com'),
+
     );
   }
 }
@@ -23,8 +23,11 @@ class MyApp extends StatelessWidget {
 class CalendarScreen extends StatefulWidget {
   final String employeeId;
   final String email;
+  final String token; // Add token parameter
 
-  const CalendarScreen({Key? key, required this.employeeId, required this.email}) : super(key: key);
+
+  const CalendarScreen({Key? key, required this.employeeId, required this.email,    required this.token, // Pass token here
+  }) : super(key: key);
 
   @override
   _CalendarScreenState createState() => _CalendarScreenState();
@@ -86,7 +89,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
         "http://localhost:8080/api/attendance/employee/${widget.employeeId}/${widget.email}/attendance");
 
     try {
-      final response = await http.get(url);
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer ${widget.token}', // Add token here
+          'Content-Type': 'application/json',
+        },
+      );
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
@@ -115,6 +124,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       });
     }
   }
+
 
 
 

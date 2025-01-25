@@ -6,12 +6,15 @@ class AdminRequestsPage extends StatefulWidget {
   final String companyId;
   final String approverId;
   final String approverEmail;
+  final String token; // Add token parameter
 
   const AdminRequestsPage({
     super.key,
     required this.companyId,
     required this.approverId,
     required this.approverEmail,
+    required this.token, // Include token parameter
+
   });
 
   @override
@@ -36,6 +39,10 @@ class _AdminRequestsPageState extends State<AdminRequestsPage> {
     try {
       final response = await http.get(
         Uri.parse("http://localhost:8080/api/leave-requests/company/${widget.companyId}"),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}', // Include token in headers
+          'Content-Type': 'application/json',
+        },
       );
 
       if (response.statusCode == 200) {
@@ -68,7 +75,10 @@ class _AdminRequestsPageState extends State<AdminRequestsPage> {
     try {
       final response = await http.put(
         Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Authorization': 'Bearer ${widget.token}', // Include token in headers
+          'Content-Type': 'application/json',
+        },
         body: json.encode(payload),
       );
 
@@ -87,6 +97,7 @@ class _AdminRequestsPageState extends State<AdminRequestsPage> {
     }
   }
 
+
   Future<void> _handleRejection(int index, int requestId) async {
     final url = "http://localhost:8080/api/leave-requests/$requestId/reject";
     final payload = {
@@ -96,7 +107,10 @@ class _AdminRequestsPageState extends State<AdminRequestsPage> {
     try {
       final response = await http.put(
         Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Authorization': 'Bearer ${widget.token}', // Include token in headers
+          'Content-Type': 'application/json',
+        },
         body: json.encode(payload),
       );
 
@@ -114,6 +128,7 @@ class _AdminRequestsPageState extends State<AdminRequestsPage> {
       _showError("An error occurred: $e");
     }
   }
+
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));

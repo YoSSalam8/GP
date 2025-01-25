@@ -4,7 +4,9 @@ import 'package:http/http.dart' as http;
 
 class ProfileScreen extends StatefulWidget {
   final String companyId; // Add companyId parameter
-  const ProfileScreen({Key? key, required this.companyId}) : super(key: key);
+  final String token; // Add token parameter
+
+  const ProfileScreen({Key? key, required this.companyId,required this.token}) : super(key: key);
 
   @override
   _ProfileScreenState createState() => _ProfileScreenState();
@@ -60,7 +62,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final url = 'http://localhost:8080/api/employees/company/${widget.companyId}/employees';
 
     try {
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}', // Include the token
+          'Content-Type': 'application/json',
+        },
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
@@ -77,11 +85,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
   }
+
+
   Future<void> _fetchCompanyDetails() async {
     final url = 'http://localhost:8080/api/companies/${widget.companyId}';
 
     try {
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}', // Include the token
+          'Content-Type': 'application/json',
+        },
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
@@ -97,11 +113,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+
+
   Future<void> _fetchEmployeeDetails(String employeeId, String email) async {
     final url = 'http://localhost:8080/api/employees/$employeeId/$email';
 
     try {
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}', // Include the token
+          'Content-Type': 'application/json',
+        },
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
@@ -147,7 +171,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final url = 'http://localhost:8080/api/departments/details/$departmentId';
 
     try {
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}', // Include the token
+          'Content-Type': 'application/json',
+        },
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
@@ -163,10 +193,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+
   Future<void> _fetchSupervisors() async {
     final url = 'http://localhost:8080/api/employees/company/${widget.companyId}/employees';
+
     try {
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}', // Include the token as a bearer token
+          'Content-Type': 'application/json', // Optional, specify content type
+        },
+      );
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
@@ -177,9 +216,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         throw Exception('Failed to fetch supervisors. Status: ${response.statusCode}');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error fetching supervisors: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching supervisors: $e')),
+      );
     }
   }
+
 
   void _filterSupervisors(String query) {
     setState(() {
@@ -261,14 +303,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final response = await http.put(
         Uri.parse(url),
-        headers: {"Content-Type": "application/json"},
+        headers: {
+          "Authorization": "Bearer ${widget.token}", // Include the token
+          "Content-Type": "application/json",
+        },
         body: jsonEncode(updatedDetails),
       );
 
       if (response.statusCode == 200) {
         _showSnackBar("Employee details updated successfully!");
-        // Optionally, refresh the employee list to reflect changes
-        _fetchEmployees();
+        _fetchEmployees(); // Refresh employee list
       } else {
         throw Exception('Failed to update employee. Status: ${response.statusCode}');
       }
@@ -276,6 +320,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _showSnackBar("Error updating employee details: $e");
     }
   }
+
 
 
   void _filterEmployees(String query) {

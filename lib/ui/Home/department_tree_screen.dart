@@ -4,8 +4,10 @@ import 'dart:convert';
 
 class OrganizationTreeScreen extends StatefulWidget {
   final String companyId;
+  final String token; // Add token parameter
 
-  const OrganizationTreeScreen({Key? key, required this.companyId}) : super(key: key);
+  const OrganizationTreeScreen({Key? key, required this.companyId ,required this.token, // Include token parameter
+  }) : super(key: key);
 
   @override
   State<OrganizationTreeScreen> createState() => _OrganizationTreeScreenState();
@@ -18,13 +20,20 @@ class _OrganizationTreeScreenState extends State<OrganizationTreeScreen> {
   @override
   void initState() {
     super.initState();
-    _organizationTreeFuture = fetchOrganizationTree(widget.companyId);
+    _organizationTreeFuture = fetchOrganizationTree(widget.companyId, widget.token);
   }
 
-  Future<Map<String, Map<String, List<Map<String, dynamic>>>>> fetchOrganizationTree(String companyId) async {
+  Future<Map<String, Map<String, List<Map<String, dynamic>>>>> fetchOrganizationTree(
+      String companyId, String token) async {
     final url = Uri.parse('http://localhost:8080/api/employees/company/$companyId/employees');
     try {
-      final response = await http.get(url);
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token', // Add token to headers
+          'Content-Type': 'application/json',
+        },
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as List;
@@ -54,6 +63,7 @@ class _OrganizationTreeScreenState extends State<OrganizationTreeScreen> {
       throw Exception('Error fetching data: $e');
     }
   }
+
 
   List<MapEntry<String, Map<String, List<Map<String, dynamic>>>>> filterData(
       Map<String, Map<String, List<Map<String, dynamic>>>> organizationTree) {

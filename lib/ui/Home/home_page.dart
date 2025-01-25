@@ -22,6 +22,7 @@ import 'package:graduation_project/ui/Admin/create_project.dart';
   import 'package:graduation_project/ui/Admin/admin_absence_vacation.dart';
   import 'package:http/http.dart' as http;
   import 'package:http_parser/http_parser.dart';
+  import 'package:graduation_project/ui/Admin/view_project.dart'; // Import EditCompanyScreen
 
 
 
@@ -69,89 +70,97 @@ import 'package:graduation_project/ui/Admin/create_project.dart';
       "VIEW_LEAVE",
       "VIEW_ORGANIZATION_TREE",
       "CREATE_PROJECT",
+      "VIEW_PROJECT",
     ];
 
     final Map<String, Map<String, dynamic>> authorityToMenu = {
       "ATTENDANCE": {
         "title": "Today",
         "icon": Icons.home,
-        "page": (String empId, String email, String id) =>
-            TodayScreen(employeeId: empId, email: email),
+        "page": (String empId, String email, String id, String token) =>
+            TodayScreen(employeeId: empId, email: email, token:token),
       },
       "VIEW_MONTHLY_ATTENDANCE": {
         "title": "Calendar",
         "icon": Icons.calendar_month,
-        "page": (String empId, String email, String id) =>
-            CalendarScreen(employeeId: empId, email: email),
+        "page": (String empId, String email, String id, String token) =>
+            CalendarScreen(employeeId: empId, email: email , token:token),
       },
       "VIEW_PROFILE": {
         "title": "Employee Details",
         "icon": Icons.person,
-        "page": (String empId, String email, String id) =>
-            EmployeeProfileScreen(employeeId: empId, email: email),
+        "page": (String empId, String email, String id, String token) =>
+            EmployeeProfileScreen(employeeId: empId, email: email , token:token ),
       },
       "EDIT_PROFILE": {
         "title": "Edit Profile",
         "icon": Icons.edit,
-        "page": (String empId, String email, String id) =>
-            ProfileScreen(companyId: id),
+        "page": (String empId, String email, String id, String token) =>
+            ProfileScreen(companyId: id, token:token),
       },
       "ADD_EMPLOYEE": {
         "title": "Add Employee",
         "icon": Icons.person_add,
-        "page": (String empId, String email, String id) =>
-            AddEmployeeScreen(companyId: id),
+        "page": (String empId, String email, String id, String token) =>
+            AddEmployeeScreen(companyId: id, token:token),
       },
       "EDIT_COMPANY": {
         "title": "Edit Company",
         "icon": Icons.business,
-        "page": (String empId, String email, String id) =>
-            EditCompanyScreen(companyId: id),
+        "page": (String empId, String email, String id, String token) =>
+            EditCompanyScreen(companyId: id, token:token),
       },
       "CREATE_ANNOUNCEMENT": {
         "title": "Create Announcement",
         "icon": Icons.campaign,
-        "page": (String empId, String email, String id) =>
+        "page": (String empId, String email, String id, String token) =>
             CreateAnnouncementScreen(
-                employeeId: empId, employeeEmail: email, companyId: id),
+                employeeId: empId, employeeEmail: email, companyId: id, token:token),
       },
       "VIEW_ANNOUNCEMENTS": {
         "title": "Announcements",
         "icon": Icons.announcement,
-        "page": (String empId, String email, String id) =>
-            AnnouncementsScreen(companyId: id),
+        "page": (String empId, String email, String id, String token) =>
+            AnnouncementsScreen(companyId: id, token:token),
       },
       "REQUEST_LEAVE": {
         "title": "Vacation Request",
         "icon": Icons.request_page,
-        "page": (String empId, String email, String id) =>
+        "page": (String empId, String email, String id, String token) =>
             VacationRequestScreen(
-                employeeId: empId, employeeEmail: email, companyId: id),
+                employeeId: empId, employeeEmail: email, companyId: id, token:token),
       },
       "APPROVE_REJECT_LEAVES": {
         "title": "Vacation Approval",
         "icon": Icons.approval,
-        "page": (String empId, String email, String id) => AdminRequestsPage(
-            companyId: id, approverId: empId, approverEmail: email),
+        "page": (String empId, String email, String id, String token) => AdminRequestsPage(
+            companyId: id, approverId: empId, approverEmail: email, token:token),
       },
       "VIEW_LEAVE": {
         "title": "View Vacation Request",
         "icon": Icons.visibility,
-        "page": (String empId, String email, String id) =>
-            VacationViewScreen(employeeId: empId, employeeEmail: email),
+        "page": (String empId, String email, String id, String token) =>
+            VacationViewScreen(employeeId: empId, employeeEmail: email, token:token),
       },
       "VIEW_ORGANIZATION_TREE": {
         "title": "Organizations",
         "icon": Icons.account_tree,
-        "page": (String empId, String email, String id) =>
-            OrganizationTreeScreen(companyId: id),
+        "page": (String empId, String email, String id, String token) =>
+            OrganizationTreeScreen(companyId: id, token:token),
       },
       "CREATE_PROJECT": {
         "title": "Create Project",
         "icon": Icons.create,
-        "page": (String empId, String email, String id) =>
-            CreateProject(companyId: id),
+        "page": (String empId, String email, String id, String token) =>
+            CreateProject(employeeId: empId, employeeEmail: email, companyId: id, token:token),
       },
+
+      "VIEW_PROJECT":{
+        "title": "View Project",
+        "icon": Icons.visibility,
+        "page": (String empId, String email, String id, String token) =>
+            ViewProject(employeeId: empId, employeeEmail: email, companyId: id, token:token),
+      }
     };
 
 
@@ -249,8 +258,9 @@ import 'package:graduation_project/ui/Admin/create_project.dart';
           .toList();
 
       return filteredAuthorities.map((authority) {
-        final pageFactory = authorityToMenu[authority]!["page"] as Widget Function(String, String, String);
-        return pageFactory(empId, email, id);
+        final pageFactory =
+        authorityToMenu[authority]!["page"] as Widget Function(String, String, String, String);
+        return pageFactory(empId, email, id, widget.token); // Pass token here
       }).toList();
     }
 

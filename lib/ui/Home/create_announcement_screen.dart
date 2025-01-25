@@ -6,12 +6,14 @@ class CreateAnnouncementScreen extends StatefulWidget {
   final String employeeId;
   final String employeeEmail;
   final String companyId;
+  final String token; // Add token parameter
 
   const CreateAnnouncementScreen({
     Key? key,
     required this.employeeId,
     required this.employeeEmail,
     required this.companyId,
+    required this.token,
   }) : super(key: key);
 
   @override
@@ -50,7 +52,10 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
     try {
       final response = await http.post(
         Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Authorization': 'Bearer ${widget.token}', // Add Authorization header
+          'Content-Type': 'application/json',
+        },
         body: json.encode(payload),
       );
 
@@ -74,6 +79,7 @@ class _CreateAnnouncementScreenState extends State<CreateAnnouncementScreen> {
       });
     }
   }
+
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(

@@ -4,7 +4,9 @@ import 'package:http/http.dart' as http;
 
 class AddEmployeeScreen extends StatefulWidget {
   final String companyId; // Receive company ID
-  const AddEmployeeScreen({super.key, required this.companyId});
+  final String token; // Receive token
+
+  const AddEmployeeScreen({super.key, required this.companyId,required this.token});
 
   @override
   State<AddEmployeeScreen> createState() => _AddEmployeeScreenState();
@@ -46,7 +48,13 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
   Future<void> _fetchSupervisors() async {
     final url = 'http://localhost:8080/api/employees/company/${widget.companyId}/employees';
     try {
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}', // Include token
+          'Content-Type': 'application/json',
+        },
+      );
       if (response.statusCode == 200) {
         setState(() {
           supervisors = List<Map<String, dynamic>>.from(json.decode(response.body));
@@ -85,9 +93,14 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
   }
   Future<void> _fetchCompanyDetails() async {
     final url = 'http://localhost:8080/api/companies/${widget.companyId}';
-
     try {
-      final response = await http.get(Uri.parse(url));
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}', // Include token
+          'Content-Type': 'application/json',
+        },
+      );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
@@ -112,6 +125,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
+
 
   void _onDepartmentSelected(String? departmentName) {
     setState(() {
@@ -141,7 +155,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
       "name": "${firstNameController.text.trim()} ${lastNameController.text.trim()}",
       "phoneNumber": phoneNumberController.text.trim(),
       "address": addressController.text.trim(),
-      "skills": skills.join(", "), // Convert skills list to a comma-separated string
+      "skills": skills.join(", "),
       "type": employeeType,
       "departmentId": int.parse(selectedDepartmentId!), // Convert to integer
       "workTitleId": int.parse(selectedWorkTitleId!), // Convert to integer
@@ -156,7 +170,10 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
     try {
       final response = await http.post(
         Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Authorization': 'Bearer ${widget.token}', // Include token
+          'Content-Type': 'application/json',
+        },
         body: jsonEncode(requestBody),
       );
 
@@ -171,7 +188,6 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
       );
     }
   }
-
 
   @override
   Widget build(BuildContext context) {

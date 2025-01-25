@@ -8,7 +8,8 @@ class VacationRequestScreen extends StatefulWidget {
   final String companyId;
   final String employeeId;
   final String employeeEmail;
-  const VacationRequestScreen({super.key, required this.companyId, required this.employeeId, required this.employeeEmail});
+  final String token; // Add token parameter
+  const VacationRequestScreen({super.key, required this.companyId, required this.employeeId, required this.employeeEmail,required this.token,});
 
   @override
   State<VacationRequestScreen> createState() => _VacationRequestScreenState();
@@ -75,7 +76,10 @@ class _VacationRequestScreenState extends State<VacationRequestScreen> {
       // Send the POST request
       final response = await http.post(
         Uri.parse("http://localhost:8080/api/leave-requests/submit"),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Authorization': 'Bearer ${widget.token}', // Include token in headers
+          'Content-Type': 'application/json',
+        },
         body: json.encode(requestPayload),
       );
 
@@ -98,10 +102,16 @@ class _VacationRequestScreenState extends State<VacationRequestScreen> {
       _showError("An error occurred: $e");
     }
   }
+
+
   Future<void> _fetchCompanyLeaveTypes() async {
     try {
       final response = await http.get(
         Uri.parse("http://localhost:8080/api/companies/${widget.companyId}"),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}', // Include token in headers
+          'Content-Type': 'application/json',
+        },
       );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -122,6 +132,10 @@ class _VacationRequestScreenState extends State<VacationRequestScreen> {
         Uri.parse(
           "http://localhost:8080/api/leave-requests/employee/${widget.employeeId}/${widget.employeeEmail}/balances",
         ),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}', // Include token in headers
+          'Content-Type': 'application/json',
+        },
       );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

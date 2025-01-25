@@ -4,7 +4,9 @@ import 'package:http/http.dart' as http;
 
 class EditCompanyScreen extends StatefulWidget {
   final String companyId; // Add companyId
-  const EditCompanyScreen({super.key, required this.companyId});
+  final String token; // Add token parameter
+
+  const EditCompanyScreen({super.key, required this.companyId, required this.token});
 
   @override
   State<EditCompanyScreen> createState() => _EditCompanyScreenState();
@@ -56,7 +58,14 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
   Future<void> _fetchCompanyDetails() async {
     final String apiUrl = 'http://localhost:8080/api/companies/${widget.companyId}';
     try {
-      final response = await http.get(Uri.parse(apiUrl));
+      final response = await http.get(
+        Uri.parse(apiUrl),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}', // Include the token
+          'Content-Type': 'application/json',
+        },
+      );
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
@@ -124,11 +133,10 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
         }).toList(),
       });
 
-      print("Headers: ${{'Content-Type': 'application/json'}}");
-      print("Body: $body");
       final response = await http.put(
         Uri.parse(apiUrl),
         headers: {
+          'Authorization': 'Bearer ${widget.token}', // Include the token
           'Content-Type': 'application/json',
         },
         body: body,
@@ -146,7 +154,6 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
-
 
   void _saveChanges() {
     _updateCompanyDetails();
