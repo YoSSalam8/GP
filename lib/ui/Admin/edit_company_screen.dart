@@ -57,6 +57,7 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
 
   Future<void> _fetchCompanyDetails() async {
     final String apiUrl = 'http://localhost:8080/api/companies/${widget.companyId}';
+
     try {
       final response = await http.get(
         Uri.parse(apiUrl),
@@ -64,7 +65,10 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
           'Authorization': 'Bearer ${widget.token}', // Include the token
           'Content-Type': 'application/json',
         },
+
       );
+      print("API Response: ${response.body}");
+
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -83,18 +87,17 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
           departments = List<Map<String, dynamic>>.from(
             (data['departments'] ?? []).map((department) => {
               "id": department['id'],
-              "name": department['name']?.toString() ?? '',
+              "name": department['name'],
               "workTitles": List<Map<String, dynamic>>.from(
                 (department['workTitles'] ?? []).map((workTitle) => {
                   "id": workTitle['id'],
-                  "name": workTitle['name']?.toString() ?? '',
-                  "authorities": List<int>.from(
-                    (workTitle['authorities'] ?? []).map((auth) => auth['id']),
-                  ),
+                  "name": workTitle['name'],
+                  "authorities": List<String>.from(workTitle['authorities'] ?? []), // Adjusted to handle string authorities
                 }),
               ),
             }),
           );
+
           isLoading = false;
         });
       } else {
@@ -360,11 +363,15 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
                         TextFormField(
                           initialValue: department["name"],
                           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          decoration: const InputDecoration(labelText: "Department Name"),
                           onFieldSubmitted: (newValue) {
-                            setState(() {
-                              department["name"] = newValue;
-                            });
-                            _updateCompanyDetails(); // Update after editing department name.
+                            if (newValue.isNotEmpty) {
+                              setState(() {
+                                department["name"] = newValue;
+                              });
+                              // Consider batching updates instead of updating instantly
+                              _updateCompanyDetails();
+                            }
                           },
                         ),
                         const SizedBox(height: 8),
@@ -384,20 +391,27 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
                                   Expanded(
                                     child: TextFormField(
                                       initialValue: workTitle["name"],
+                                      decoration: const InputDecoration(labelText: "Work Title"),
                                       onFieldSubmitted: (newValue) {
-                                        setState(() {
-                                          workTitle["name"] = newValue;
-                                        });
-                                        _updateCompanyDetails(); // Update after editing work title name.
+                                        if (newValue.isNotEmpty) {
+                                          setState(() {
+                                            workTitle["name"] = newValue;
+                                          });
+                                          _updateCompanyDetails();
+                                        }
                                       },
                                     ),
                                   ),
                                   IconButton(
                                     icon: const Icon(Icons.settings, color: Colors.blue),
                                     onPressed: () {
+                                      print("Icon button clicked. WorkTitle: ${workTitle["name"]}");
                                       _showAuthorityDialog(context, workTitle);
                                     },
                                   ),
+
+
+
                                 ],
                               ),
                             ),
@@ -408,10 +422,13 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
                         TextField(
                           decoration: const InputDecoration(labelText: "Add Work Title"),
                           onSubmitted: (value) {
-                            setState(() {
-                              department["workTitles"].add({"id": null, "name": value, "authorities": []});
-                            });
-                            _updateCompanyDetails(); // Update after adding work title.
+                            if (value.isNotEmpty) {
+                              setState(() {
+                                department["workTitles"]
+                                    .add({"id": null, "name": value, "authorities": []});
+                              });
+                              _updateCompanyDetails();
+                            }
                           },
                         ),
                       ],
@@ -424,14 +441,16 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
             TextField(
               decoration: const InputDecoration(labelText: "Add Department"),
               onSubmitted: (value) {
-                setState(() {
-                  departments.add({
-                    "id": null, // `null` for new department.
-                    "name": value,
-                    "workTitles": [],
+                if (value.isNotEmpty) {
+                  setState(() {
+                    departments.add({
+                      "id": null, // `null` for new department.
+                      "name": value,
+                      "workTitles": [],
+                    });
                   });
-                });
-                _updateCompanyDetails(); // Update after adding department.
+                  _updateCompanyDetails();
+                }
               },
             ),
           ],
@@ -440,9 +459,11 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
     );
   }
 
+
   void _showAuthorityDialog(BuildContext context, Map<String, dynamic> workTitle) {
+    print("Opening authority dialog for: ${workTitle["name"]}");
     List<int> selectedAuthorities = List.from(workTitle["authorities"]);
-    bool isWeb = MediaQuery.of(context).size.width > 600; // Check if it's web
+    List<Map<String, dynamic>> filteredAuthorities = List.from(authorities);
 
     showDialog(
       context: context,
@@ -450,12 +471,11 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
         return Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: StatefulBuilder(
-            builder: (BuildContext context, void Function(void Function()) setState) {
+            builder: (context, setState) {
               return SingleChildScrollView(
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       const Text(
@@ -467,94 +487,101 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        "Tap to toggle authority access",
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      TextField(
+                        decoration: const InputDecoration(
+                          hintText: "Search Authorities",
+                          prefixIcon: Icon(Icons.search),
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (query) {
+                          setState(() {
+                            filteredAuthorities = authorities
+                                .where((auth) => auth["name"]
+                                .toLowerCase()
+                                .contains(query.toLowerCase()))
+                                .toList();
+                          });
+                        },
                       ),
                       const SizedBox(height: 16),
-                      Container(
-                        constraints: BoxConstraints(
-                          maxHeight: MediaQuery.of(context).size.height * 0.4,
-                        ),
-                        child: GridView.count(
-                          crossAxisCount: isWeb ? 5 : 3, // More columns for web
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                          shrinkWrap: true,
-                          children: authorities.map((auth) {
-                            bool isSelected = selectedAuthorities.contains(auth["id"]);
-                            return GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  if (isSelected) {
-                                    selectedAuthorities.remove(auth["id"]);
-                                  } else {
-                                    selectedAuthorities.add(auth["id"]);
-                                  }
-                                  workTitle["authorities"] = selectedAuthorities;
-                                });
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 300),
-                                padding: const EdgeInsets.all(4), // Smaller padding for web
-                                height: isWeb ? 30 : 50, // Smaller height for web
-                                width: isWeb ? 60 : 100, // Smaller width for web
-                                decoration: BoxDecoration(
-                                  gradient: isSelected
-                                      ? const LinearGradient(
-                                    colors: [Color(0xFF133E87), Color(0xFF608BC1)],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  )
-                                      : const LinearGradient(
-                                    colors: [Colors.white, Colors.white],
-                                  ),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: isSelected ? Colors.blue : Colors.grey.shade300,
-                                    width: 1.5,
-                                  ),
-                                  boxShadow: isSelected
-                                      ? [
-                                    BoxShadow(
-                                      color: Colors.blue.withOpacity(0.4),
-                                      blurRadius: 6,
-                                      spreadRadius: 1,
-                                    ),
-                                  ]
-                                      : [],
+                      Text(
+                        "Selected: ${selectedAuthorities.length} / ${authorities.length}",
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 16),
+                      GridView.count(
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                        shrinkWrap: true,
+                        children: filteredAuthorities.map((auth) {
+                          bool isSelected = selectedAuthorities.contains(auth["id"]);
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                if (isSelected) {
+                                  selectedAuthorities.remove(auth["id"]);
+                                } else {
+                                  selectedAuthorities.add(auth["id"]);
+                                }
+                              });
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              decoration: BoxDecoration(
+                                gradient: isSelected
+                                    ? const LinearGradient(
+                                  colors: [Color(0xFF133E87), Color(0xFF608BC1)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                )
+                                    : const LinearGradient(colors: [Colors.white, Colors.white]),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isSelected ? Colors.blue : Colors.grey.shade300,
+                                  width: 1.5,
                                 ),
-                                child: Center(
-                                  child: Text(
-                                    auth["name"],
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: isSelected ? Colors.white : Colors.black87,
-                                      fontSize: isWeb ? 15 : 12, // Smaller font size for web
-                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                    ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  auth["name"],
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: isSelected ? Colors.white : Colors.black87,
+                                    fontSize: 12,
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                                   ),
                                 ),
                               ),
-                            );
-                          }).toList(),
-                        ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                       const SizedBox(height: 24),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
                           ElevatedButton.icon(
                             onPressed: () => Navigator.pop(context),
                             icon: const Icon(Icons.close, color: Colors.white),
-                            label: const Text("Close"),
+                            label: const Text("Cancel"),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF133E87),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                              textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              backgroundColor: Colors.red,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                workTitle["authorities"] = selectedAuthorities;
+                              });
+                              Navigator.pop(context);
+                            },
+                            icon: const Icon(Icons.check, color: Colors.white),
+                            label: const Text("Save"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
                           ),
                         ],

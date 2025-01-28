@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http; // For HTTP requests
 import 'package:graduation_project/ui/Login/login_page.dart';
 import 'package:graduation_project/ui/Admin/add_admin.dart';
+import 'dart:io';
 
 class MultiStageSignUp extends StatefulWidget {
   const MultiStageSignUp({super.key});
@@ -42,8 +43,8 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
     {"id": 30, "name": "VIEW_ORGANIZATION_TREE","mandatory": false},
     {"id": 31, "name": "CREATE_PROJECT","mandatory": false},
     {"id": 32, "name": "VIEW_PROJECT","mandatory": false},
-    {"id": 33, "name": "ADD_HOURS_INTO_PROJECT","mandatory": false},
-    {"id": 34, "name": "EDIT_PROJECT","mandatory": false},
+    {"id": 35, "name": "VIEW_CV","mandatory": false},
+    {"id": 37, "name": "ADD_CV","mandatory": false},
   ];
 
   final List<String> countries = [
@@ -69,7 +70,12 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
     'United States': 'US123',
   };
 
+
+
   void nextStage() {
+    if (!validateCurrentStage()) {
+      return;
+    }
     setState(() {
       currentStage++;
       _pageController.animateToPage(
@@ -79,6 +85,48 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
       );
     });
   }
+
+  bool validateCurrentStage() {
+    String errorMessage = "";
+
+    if (currentStage == 0) {
+      if (creatorEmail.isEmpty || !creatorEmail.contains("@")) {
+        errorMessage = "Please enter a valid creator's email.";
+      } else if (companyName.isEmpty) {
+        errorMessage = "Please enter the company name.";
+      } else if (emailDomains.isEmpty) {
+        errorMessage = "Please provide at least one email domain.";
+      }
+    } else if (currentStage == 1) {
+      if (selectedCountries.isEmpty) {
+        errorMessage = "Please select at least one country.";
+      }
+    } else if (currentStage == 2) {
+      if (departments.isEmpty || departments.any((dept) => dept["name"].isEmpty)) {
+        errorMessage = "Each department must have a name.";
+      } else if (departments.any((dept) =>
+      (dept["workTitles"] as List).isEmpty ||
+          (dept["workTitles"] as List).any((title) => title["name"].isEmpty))) {
+        errorMessage = "Each department must have at least one work title with a name.";
+      }
+    } else if (currentStage == 3) {
+      if (leaveTypes.isEmpty || leaveTypes.any((leave) => leave["type"].isEmpty)) {
+        errorMessage = "Each leave type must have a name.";
+      } else if (leaveTypes.any((leave) => leave["daysAllowed"] <= 0)) {
+        errorMessage = "Each leave type must allow at least one day.";
+      }
+    }
+
+    if (errorMessage.isNotEmpty) {
+      showErrorDialog(context, errorMessage);
+      return false;
+    }
+
+    return true;
+  }
+
+
+
   void addLeaveType() {
     setState(() {
       leaveTypes.add({"type": "", "daysAllowed": 0, "isPaid": false});
@@ -117,7 +165,7 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
 
 
   void sendRequest(BuildContext context, Map<String, dynamic> requestPayload) async {
-    const String url = "http://localhost:8080/api/companies/create-structure";
+    const String url = "http://192.168.68.111:8080/api/companies/create-structure";
     int companyId ; // Variable to store the company ID
 
 
@@ -198,15 +246,25 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
             children: [
               const Icon(Icons.error, color: Colors.red, size: 80),
               const SizedBox(height: 20),
-              const Text("Error", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const Text(
+                "Validation Error",
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 10),
-              Text(message, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16)),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16),
+              ),
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () {
                   Navigator.pop(context);
                 },
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                ),
                 child: const Text("OK"),
               ),
             ],
@@ -215,6 +273,7 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
       },
     );
   }
+
 
   Widget buildLeaveTypeStage() {
     return AnimatedOpacity(
@@ -440,103 +499,123 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
   }
 
   Widget buildCompanyStage() {
-    return AnimatedOpacity(
-      duration: const Duration(milliseconds: 300),
-      opacity: currentStage == 0 ? 1.0 : 0.0,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text(
-            "Step 1: Company Information",
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 20),
-          TextField(
-            decoration: InputDecoration(
-              labelText: "Creator's Email",
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              prefixIcon: const Icon(Icons.email),
-            ),
-            onChanged: (value) {
-              creatorEmail = value;
-            },
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            decoration: InputDecoration(
-              labelText: "Company Name",
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              prefixIcon: const Icon(Icons.business),
-            ),
-            onChanged: (value) => companyName = value,
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            decoration: InputDecoration(
-              labelText: "Email Domains (comma-separated)",
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              prefixIcon: const Icon(Icons.domain),
-            ),
-            onChanged: (value) =>
-            emailDomains = value.split(",").map((e) => e.trim()).toList(),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            "Company Working Hours",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  decoration: InputDecoration(
-                    labelText: "Start Time (e.g., 09:00 )",
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        bool isWeb = constraints.maxWidth > 600;
+
+        return AnimatedOpacity(
+          duration: const Duration(milliseconds: 300),
+          opacity: currentStage == 0 ? 1.0 : 0.0,
+          child: Center(
+            child: SingleChildScrollView(
+              child: Container(
+                width: isWeb ? constraints.maxWidth * 0.6 : double.infinity,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isWeb ? 20 : 16,
+                  vertical: 20,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Step 1: Company Information",
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                     ),
-                    prefixIcon: const Icon(Icons.access_time),
-                  ),
-                  onChanged: (value) {
-                    setState(() {
-                      departments.forEach((department) {
-                        department["startTime"] = value; // Default for departments
-                      });
-                    });
-                  },
+                    const SizedBox(height: 20),
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: "Creator's Email",
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        prefixIcon: const Icon(Icons.email),
+                      ),
+                      onChanged: (value) {
+                        creatorEmail = value;
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: "Company Name",
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        prefixIcon: const Icon(Icons.business),
+                      ),
+                      onChanged: (value) => companyName = value,
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      decoration: InputDecoration(
+                        labelText: "Email Domains (comma-separated)",
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        prefixIcon: const Icon(Icons.domain),
+                      ),
+                      onChanged: (value) => emailDomains =
+                          value.split(",").map((e) => e.trim()).toList(),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      "Company Working Hours",
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            decoration: InputDecoration(
+                              labelText: "Start Time (e.g., 09:00 )",
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              prefixIcon: const Icon(Icons.access_time),
+                            ),
+                            onChanged: (value) {
+                              setState(() {
+                                departments.forEach((department) {
+                                  department["startTime"] = value;
+                                });
+                              });
+                            },
+                          ),
+                        ),
+                        SizedBox(width: isWeb ? 20 : 10),
+                        Expanded(
+                          child: TextField(
+                            decoration: InputDecoration(
+                              labelText: "End Time (e.g., 17:00 )",
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              prefixIcon: const Icon(Icons.access_time_filled),
+                            ),
+                            onChanged: (value) {
+                              setState(() {
+                                departments.forEach((department) {
+                                  department["endTime"] = value;
+                                });
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TextField(
-                  decoration: InputDecoration(
-                    labelText: "End Time (e.g., 17:00 )",
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    prefixIcon: const Icon(Icons.access_time_filled),
-                  ),
-                  onChanged: (value) {
-                    setState(() {
-                      departments.forEach((department) {
-                        department["endTime"] = value; // Default for departments
-                      });
-                    });
-                  },
-                ),
-              ),
-            ],
+            ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
+
+
 
   Widget buildCountryStage() {
     return AnimatedOpacity(

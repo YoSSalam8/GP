@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'constants.dart';
-import '../Login/login_page.dart';
 import 'landing_page.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -22,17 +21,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         backgroundColor: Colors.white,
         elevation: 0.0,
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 20, left: 20),
-            child: const Text(
-              'Skip',
-              style: TextStyle(
-                color: Color(0xFF133E87),
-                fontSize: 18.0,
-                fontWeight: FontWeight.w500,
+          GestureDetector(
+            onTap: () {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => LandingPage()),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: const Text(
+                'Skip',
+                style: TextStyle(
+                  color: Color(0xFF133E87),
+                  fontSize: 18.0,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
-          )
+          ),
         ],
       ),
       body: Stack(
@@ -47,17 +54,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             controller: _pageController,
             children: [
               createPage(
-                image: 'images/logo_fusion.png',
+                image: 'images/logo_Fusion.png',
                 title: Constants.titleOne,
                 description: Constants.descOne,
               ),
               createPage(
-                image: 'images/logo_fusion.png',
+                image: 'images/logo_Fusion.png',
                 title: Constants.titleTwo,
                 description: Constants.descTwo,
               ),
               createPage(
-                image: 'images/logo_fusion.png',
+                image: 'images/logo_Fusion.png',
                 title: Constants.titleThree,
                 description: Constants.descThree,
               ),
@@ -71,38 +78,45 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ),
           Positioned(
-            bottom: 60,
+            bottom: 40,
             right: 30,
-            child: Container(
-              child: IconButton(
-                onPressed: () {
-                  setState(() {
-                    if (currentIndex < 2) {
-                      currentIndex++;
-                      if (currentIndex < 3) {
-                        _pageController.nextPage(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeIn,
-                        );
-                      }
-                    } else {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (_) =>  LandingPage()),
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF608BC1),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                shadowColor: Colors.black.withOpacity(0.2),
+                elevation: 8,
+              ),
+              onPressed: () {
+                setState(() {
+                  if (currentIndex < 2) {
+                    currentIndex++;
+                    if (currentIndex < 3) {
+                      _pageController.nextPage(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeIn,
                       );
                     }
-                  });
-                },
-                icon: const Icon(
-                  Icons.arrow_forward_ios,
-                  size: 24,
-                  color: Colors.white,
-                ),
-              ),
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF608BC1),
+                  } else {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => LandingPage()),
+                    );
+                  }
+                });
+              },
+              child: Row(
+                children: const [
+                  Text(
+                    "Next",
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+                  SizedBox(width: 8),
+                  Icon(Icons.arrow_forward_ios, color: Colors.white, size: 18),
+                ],
               ),
             ),
           ),
@@ -111,7 +125,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  // Extra Widgets
   Widget _indicator(bool isActive) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
@@ -126,15 +139,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   List<Widget> _buildIndicator() {
-    List<Widget> indicators = [];
-    for (int i = 0; i < 3; i++) {
-      if (currentIndex == i) {
-        indicators.add(_indicator(true));
-      } else {
-        indicators.add(_indicator(false));
-      }
-    }
-    return indicators;
+    return List.generate(
+      3,
+          (index) => _indicator(currentIndex == index),
+    );
   }
 }
 
@@ -154,7 +162,7 @@ class createPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.only(left: 50, right: 50, bottom: 80),
+      padding: const EdgeInsets.all(20),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -162,7 +170,7 @@ class createPage extends StatelessWidget {
             height: 250,
             child: Image.asset(image),
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 20),
           Text(
             title,
             textAlign: TextAlign.center,
@@ -177,11 +185,11 @@ class createPage extends StatelessWidget {
             description,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontSize: 20,
+              fontSize: 18,
               fontWeight: FontWeight.w400,
               color: Color(0xFF608BC1),
             ),
-          )
+          ),
         ],
       ),
     );

@@ -58,8 +58,7 @@ class _ViewProjectState extends State<ViewProject> {
   }
 
   Future<void> fetchEmployeeJob(Map<String, dynamic> project) async {
-    final url = Uri.parse(
-        "http://localhost:8080/api/project-jobs/${project["id"]}/employee/${widget.employeeId}");
+    final url = Uri.parse("http://localhost:8080/api/project-jobs/project/${project["id"]}");
     try {
       final response = await http.get(
         url,
@@ -71,12 +70,24 @@ class _ViewProjectState extends State<ViewProject> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        setState(() {
-          employeeJobTitle = data["name"] ?? "No Job Title Assigned";
-          project["jobId"] = data["id"]; // Ensure jobId is assigned
-        });
+        if (data.isNotEmpty) {
+          final jobDetails = data.firstWhere(
+                  (job) => job["employeeId"]["id"].toString() == widget.employeeId,
+              orElse: () => null);
+
+          if (jobDetails != null) {
+            setState(() {
+              employeeJobTitle = jobDetails["name"] ?? "No Job Title Assigned";
+              project["jobId"] = jobDetails["id"]; // Assign job ID
+            });
+          } else {
+            throw Exception("No job details found for the current employee.");
+          }
+        } else {
+          throw Exception("Empty response received from the server.");
+        }
       } else {
-        throw Exception("Failed to fetch employee job details.");
+        throw Exception("Failed to fetch project job details. Status: ${response.statusCode}");
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -106,13 +117,13 @@ class _ViewProjectState extends State<ViewProject> {
       final workDetails = {
         "projectId": project["id"],
         "employeeId": {"id": int.parse(widget.employeeId), "email": widget.employeeEmail},
-        "jobId": project["jobId"], // Ensure jobId is not null
+        "jobId": project["jobId"],
         "hoursWorked": int.parse(hoursController.text),
-        "date": DateTime.now().toIso8601String().split('T')[0], // Current date in YYYY-MM-DD format
+        "date": DateTime.now().toIso8601String().split('T')[0],
         "isClientBillable": isBillable,
       };
 
-      print("Submitting work details: ${jsonEncode(workDetails)}"); // Log payload for debugging
+      print("Submitting work details: ${jsonEncode(workDetails)}");
 
       final url = Uri.parse("http://localhost:8080/api/project-hours/assign");
       final response = await http.post(
@@ -128,7 +139,7 @@ class _ViewProjectState extends State<ViewProject> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Work details submitted successfully!")),
         );
-        Navigator.pop(context); // Close the modal after submission
+        Navigator.pop(context);
       } else {
         throw Exception(
             "Failed to submit work details. Status code: ${response.statusCode}, response: ${response.body}");
@@ -140,18 +151,24 @@ class _ViewProjectState extends State<ViewProject> {
     }
   }
 
-  void showProjectDetailsModal(Map<String, dynamic> project) {
+  void showProjectDetailsModal(Map<String, dynamic> project) async {
     hoursController.clear();
     setState(() {
-      isBillable = false; // Reset the billable switch
+      isBillable = false;
     });
 
-    fetchEmployeeJob(project); // Pass the project to fetchEmployeeJob
+    await fetchEmployeeJob(project); // Ensure jobId is fetched before opening the modal
+
+    if (project["jobId"] == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Unable to fetch job details. Please try again.")),
+      );
+      return;
+    }
 
     showDialog(
       context: context,
       builder: (context) {
-        // Use a `StatefulBuilder` to manage the dialog's state independently
         return StatefulBuilder(
           builder: (context, setStateModal) {
             return Dialog(
@@ -240,7 +257,6 @@ class _ViewProjectState extends State<ViewProject> {
                         ),
                         value: isBillable,
                         onChanged: (value) {
-                          // Use setState from StatefulBuilder to update the modal state
                           setStateModal(() {
                             isBillable = value;
                           });
@@ -257,7 +273,7 @@ class _ViewProjectState extends State<ViewProject> {
                               borderRadius: BorderRadius.circular(15),
                             ),
                           ),
-                          onPressed: () => submitWorkDetails(project), // Pass the entire project object
+                          onPressed: () => submitWorkDetails(project),
                           child: const Text(
                             "Submit Work Details",
                             style: TextStyle(
@@ -267,7 +283,6 @@ class _ViewProjectState extends State<ViewProject> {
                             ),
                           ),
                         ),
-
                       ),
                     ],
                   ),

@@ -55,6 +55,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _fetchEmployees();
     _fetchCompanyDetails();
     _fetchSupervisors();
+    if (departments.isNotEmpty) {
+      _fetchDepartmentDetails(departments.first['id']); // Use the first department's ID as an example
+    }
 // Fetch employees on screen load
   }
 
@@ -102,6 +105,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final data = jsonDecode(response.body);
         setState(() {
           departments = List<Map<String, dynamic>>.from(data['departments'] ?? []);
+          if (departments.isNotEmpty) {
+            // Auto-select the first department
+            final firstDepartment = departments.first;
+            selectedDepartment = firstDepartment['name'];
+            departmentController.text = selectedDepartment!;
+            workTitles = List<Map<String, dynamic>>.from(firstDepartment['workTitles'] ?? []);
+            if (workTitles.isNotEmpty) {
+              selectedWorkTitle = workTitles.first['name']; // Auto-select the first work title if available
+            }
+          }
         });
       } else {
         throw Exception('Failed to fetch company details. Status: ${response.statusCode}');
@@ -112,6 +125,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
   }
+
+
 
 
 
@@ -249,26 +264,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       selectedEmployeeId = employee["id"].toString();
       emailController.text = employee["email"] ?? '';
-      nameController.text = ''; // Clear until fetched
-      phoneController.text = ''; // Clear until fetched
-      addressController.text = ''; // Clear until fetched
+      nameController.text = employee["name"] ?? '';
+      phoneController.text = employee["phoneNumber"] ?? '';
+      addressController.text = employee["address"] ?? '';
+      skillsController.text = employee["skills"] ?? '';
       selectedJobType = employee["type"] ?? jobTypes.first;
       selectedWorkTime = employee["workScheduleType"] ?? workTimes.first;
 
-      selectedDepartment = departments.firstWhere(
+      // Auto-fill department based on employee's departmentId
+      final department = departments.firstWhere(
             (dept) => dept["id"].toString() == (employee["departmentId"]?.toString() ?? ""),
         orElse: () => {},
-      )["name"];
+      );
 
+      selectedDepartment = department["name"];
+      departmentController.text = selectedDepartment ?? '';
+
+      // Update work titles and auto-select if available
+      workTitles = List<Map<String, dynamic>>.from(department["workTitles"] ?? []);
       selectedWorkTitle = workTitles.firstWhere(
             (title) => title["id"].toString() == (employee["workTitleId"]?.toString() ?? ""),
         orElse: () => {},
       )["name"];
     });
 
-    // Fetch detailed info for the selected employee
     _fetchEmployeeDetails(employee["id"].toString(), employee["email"]);
   }
+
 
 
   void _saveEmployeeDetails() async {
@@ -320,6 +342,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _showSnackBar("Error updating employee details: $e");
     }
   }
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16, bottom: 8),
+      child: Text(
+        title,
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF133E87)),
+      ),
+    );
+  }
+
+  Widget _buildCard(String title, Widget child) {
+    return Card(
+      elevation: 4,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+            ),
+            const SizedBox(height: 8),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
 
 
 
@@ -358,6 +411,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Center(
+                    child: Image.asset(
+                      'images/logo_Fusion.png', // Path to your logo
+                      height: 100,
+                      width: 100,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                   TextField(
                     controller: searchController,
                     onChanged: _filterEmployees,
@@ -405,13 +467,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           (value) {
                         setState(() {
                           selectedDepartment = value;
+                          departmentController.text = value ?? '';
+                          // Update work titles when department changes
                           workTitles = List<Map<String, dynamic>>.from(
                               departments.firstWhere((dept) => dept["name"] == value)["workTitles"]
                           );
+                          // Reset work title selection
                           selectedWorkTitle = null;
                         });
                       },
                     ),
+
+
                     _buildDropdown(
                       "Work Title",
                       workTitles.map<String>((title) => title["name"]?.toString() ?? "").toList(),

@@ -1,5 +1,6 @@
   import 'package:flutter/material.dart';
 import 'package:graduation_project/ui/Admin/create_project.dart';
+import 'package:graduation_project/ui/Home/add_CV.dart';
   import 'package:graduation_project/ui/Home/calendar_screen.dart';
   import 'package:graduation_project/ui/Home/profile_screen.dart';
   import 'package:graduation_project/ui/Home/today_screen.dart';
@@ -23,6 +24,8 @@ import 'package:graduation_project/ui/Admin/create_project.dart';
   import 'package:http/http.dart' as http;
   import 'package:http_parser/http_parser.dart';
   import 'package:graduation_project/ui/Admin/view_project.dart'; // Import EditCompanyScreen
+  import'package:graduation_project/ui/Home/ViewCVScreen.dart';
+  import 'package:graduation_project/ui/Home/add_CV.dart';
 
 
 
@@ -71,6 +74,9 @@ import 'package:graduation_project/ui/Admin/create_project.dart';
       "VIEW_ORGANIZATION_TREE",
       "CREATE_PROJECT",
       "VIEW_PROJECT",
+      "VIEW_CV",
+      "VIEW_CV_SUMMARY",
+      "ADD_CV",
     ];
 
     final Map<String, Map<String, dynamic>> authorityToMenu = {
@@ -160,6 +166,27 @@ import 'package:graduation_project/ui/Admin/create_project.dart';
         "icon": Icons.visibility,
         "page": (String empId, String email, String id, String token) =>
             ViewProject(employeeId: empId, employeeEmail: email, companyId: id, token:token),
+      },
+
+      "VIEW_CV":{
+        "title": "View CVs",
+        "icon": Icons.visibility,
+        "page": (String empId, String email, String id, String token) =>
+            ViewCVScreen(employeeId: empId, employeeEmail: email, companyId: id, token:token),
+      },
+
+      "VIEW_CV_SUMMARY":{
+        "title": "View CV Summary",
+        "icon": Icons.visibility,
+        "page": (String empId, String email, String id, String token) =>
+            ViewProject(employeeId: empId, employeeEmail: email, companyId: id, token:token),
+      },
+
+      "ADD_CV":{
+        "title": "Add CV",
+        "icon": Icons.visibility,
+        "page": (String empId, String email, String id, String token) =>
+            AddCVScreen(employeeId: empId, employeeEmail: email, companyId: id, token:token),
       }
     };
 
@@ -212,7 +239,7 @@ import 'package:graduation_project/ui/Admin/create_project.dart';
       }
     }
     Future<void> fetchProfilePicture() async {
-      final url = 'http://localhost:8080/api/employees/$empId/$email/picture';
+      final url = 'http://192.168.68.111:8080/api/employees/$empId/$email/picture';
       try {
         final response = await http.get(Uri.parse(url));
         if (response.statusCode == 200) {
@@ -226,9 +253,16 @@ import 'package:graduation_project/ui/Admin/create_project.dart';
         print("Error fetching profile picture: $e");
       }
     }
-
     List<Widget> _buildMenuItems() {
-      final filteredAuthorities = orderedAuthorities
+      final bool isWeb = kIsWeb; // Check if running on web
+
+      // Determine which authorities to use based on the platform
+      final allowedAuthorities = isWeb
+          ? orderedAuthorities // Full set for web
+          : ["ATTENDANCE", "VIEW_MONTHLY_ATTENDANCE", "VIEW_PROFILE"]; // Limited set for mobile
+
+      // Filter and create menu items
+      final filteredAuthorities = allowedAuthorities
           .where((auth) => userAuthorities.contains(auth) && authorityToMenu.containsKey(auth))
           .toList();
 
@@ -253,7 +287,15 @@ import 'package:graduation_project/ui/Admin/create_project.dart';
 
 
     List<Widget> _buildPages() {
-      final filteredAuthorities = orderedAuthorities
+      final bool isWeb = kIsWeb; // Check if running on web
+
+      // Determine which authorities to use based on the platform
+      final allowedAuthorities = isWeb
+          ? orderedAuthorities // Full set for web
+          : ["ATTENDANCE", "VIEW_MONTHLY_ATTENDANCE", "VIEW_PROFILE"]; // Limited set for mobile
+
+      // Filter and create pages
+      final filteredAuthorities = allowedAuthorities
           .where((auth) => userAuthorities.contains(auth) && authorityToMenu.containsKey(auth))
           .toList();
 
@@ -288,7 +330,7 @@ import 'package:graduation_project/ui/Admin/create_project.dart';
 
 
     Future<void> uploadProfilePicture(Uint8List imageData) async {
-      final url = 'http://localhost:8080/api/employees/$empId/$email/upload-picture';
+      final url = 'http://192.168.68.111:8080/api/employees/$empId/$email/upload-picture';
       final request = http.MultipartRequest('POST', Uri.parse(url))
         ..fields['employeeId'] = empId
         ..files.add(
@@ -455,7 +497,7 @@ import 'package:graduation_project/ui/Admin/create_project.dart';
             padding: const EdgeInsets.all(0),
             children: [
               UserAccountsDrawerHeader(
-                accountName: Text("Employee Name"),
+                accountName: Text(""),
                 accountEmail: Text(email),
                 currentAccountPicture: GestureDetector(
                   onTap: pickUploadProfilePic, // Open file picker to upload profile picture

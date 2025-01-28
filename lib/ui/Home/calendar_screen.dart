@@ -86,7 +86,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     });
 
     final url = Uri.parse(
-        "http://localhost:8080/api/attendance/employee/${widget.employeeId}/${widget.email}/attendance");
+        "http://192.168.68.111:8080/api/attendance/employee/${widget.employeeId}/${widget.email}/attendance");
 
     try {
       final response = await http.get(
@@ -166,7 +166,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Attendance'),
+
         actions: [
           IconButton(
             icon: const Icon(Icons.calendar_today),

@@ -149,7 +149,7 @@ class _LandingPageState extends State<LandingPage> with SingleTickerProviderStat
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset('images/logo_fusion.png', height: 120),
+                Image.asset('images/logo_Fusion.png', height: 120),
                 const SizedBox(height: 20),
                 const AnimatedText(),
                 const SizedBox(height: 15),
@@ -200,9 +200,9 @@ class _LandingPageState extends State<LandingPage> with SingleTickerProviderStat
                 const Text(
                   'About Fusion HR',
                   style: TextStyle(
-                    fontSize: 24,
+                    fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: Colors.black,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -216,7 +216,7 @@ class _LandingPageState extends State<LandingPage> with SingleTickerProviderStat
                       'Whether you are managing a team of 10 or 10,000, our solutions scale with your needs. '
                       'From employee onboarding to advanced analytics, Fusion HR covers all aspects of human '
                       'resource management.',
-                  style: TextStyle(fontSize: 18, color: Colors.white),
+                  style: TextStyle(fontSize: 18, color: Colors.black),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -259,11 +259,7 @@ class _LandingPageState extends State<LandingPage> with SingleTickerProviderStat
             description: 'Enhance security with customizable access permissions.',
             icon: Icons.lock,
           ),
-          FeatureCard(
-            title: 'Payroll Management',
-            description: 'Streamline payroll processing with automated tax deductions.',
-            icon: Icons.money,
-          ),
+
           FeatureCard(
             title: 'Performance Analytics',
             description: 'Gain insights into employee performance with real-time data.',

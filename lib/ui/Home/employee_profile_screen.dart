@@ -1,19 +1,18 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class EmployeeProfileScreen extends StatefulWidget {
   final String employeeId;
   final String email;
-  final String token; // Add token parameter
-
+  final String token;
 
   const EmployeeProfileScreen({
     super.key,
     required this.employeeId,
     required this.email,
-    required this.token, // Pass token here
-
+    required this.token,
   });
 
   @override
@@ -36,6 +35,7 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
   String companyName = '';
   bool overtimeAllowed = false;
   String workScheduleType = '';
+  Uint8List? profilePicture; // Add variable for profile picture
 
   bool isLoading = true; // Track loading state
 
@@ -51,6 +51,7 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
 
     // Fetch employee data
     _fetchEmployeeData();
+    fetchProfilePicture(); // Fetch profile picture
   }
 
   @override
@@ -60,12 +61,12 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
   }
 
   Future<void> _fetchEmployeeData() async {
-    final url = 'http://localhost:8080/api/employees/${widget.employeeId}/${widget.email}';
+    final url = 'http://192.168.68.111:8080/api/employees/${widget.employeeId}/${widget.email}';
     try {
       final response = await http.get(
         Uri.parse(url),
         headers: {
-          'Authorization': 'Bearer ${widget.token}', // Use widget.token here
+          'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
         },
       );
@@ -92,6 +93,22 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
+    }
+  }
+
+  Future<void> fetchProfilePicture() async {
+    final url = 'http://192.168.68.111:8080/api/employees/${widget.employeeId}/${widget.email}/picture';
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        setState(() {
+          profilePicture = response.bodyBytes; // Set profile picture bytes
+        });
+      } else {
+        print("Failed to fetch profile picture: ${response.body}");
+      }
+    } catch (e) {
+      print("Error fetching profile picture: $e");
     }
   }
 
@@ -188,7 +205,16 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
                   ),
                 ],
               ),
-              child: const CircleAvatar(
+              child: profilePicture != null
+                  ? ClipOval(
+                child: Image.memory(
+                  profilePicture!,
+                  fit: BoxFit.cover,
+                  width: 120,
+                  height: 120,
+                ),
+              )
+                  : const CircleAvatar(
                 radius: 60,
                 backgroundImage: AssetImage("images/logo.png"),
               ),

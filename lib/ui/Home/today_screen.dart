@@ -59,7 +59,7 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
   }
   Future<void> _fetchAttendanceStatus() async {
     final url =
-        'http://localhost:8080/api/attendance/employee/${widget.employeeId}/${widget.email}/attendance';
+        'http://192.168.68.111:8080/api/attendance/employee/${widget.employeeId}/${widget.email}/attendance';
     try {
       final response = await http.get(
         Uri.parse(url),
@@ -134,7 +134,7 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
       });
     } catch (e) {
       setState(() {
-        location = "Unable to determine location.";
+        location = "";
       });
     }
   }
@@ -203,14 +203,21 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
           child: Center(
             child: SingleChildScrollView(
               padding: EdgeInsets.symmetric(
-                horizontal: isWeb ? screenWidth * 0.2 : 20, // Adjust for web and mobile
+                horizontal: isWeb ? screenWidth * 0.2 : 20,
               ),
               child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: 800), // Limit width for larger screens
+                constraints: BoxConstraints(maxWidth: 800),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    Image.asset(
+                      'images/logo_Fusion.png',
+                      height: 120,
+                      width: 120,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(height: 20),
                     _buildGreeting(),
                     const SizedBox(height: 20),
                     _buildStatusCard(isWeb),
@@ -220,10 +227,6 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
                     _buildCurrentTimeAndDate(isWeb),
                     const SizedBox(height: 30),
                     _buildSlideAction(isWeb),
-                    if (location != " ") ...[
-                      const SizedBox(height: 30),
-                      _buildLocation(isWeb),
-                    ],
                   ],
                 ),
               ),
@@ -233,6 +236,7 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
       ),
     );
   }
+
 
   Widget _buildGreeting() {
     return Column(
@@ -340,15 +344,6 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
                   style: const TextStyle(color: Colors.black)),
             ],
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(Icons.location_on, color: Colors.red),
-              const SizedBox(width: 8),
-              Text("Location Verified: ${location != " " ? "Yes" : "No"}",
-                  style: const TextStyle(color: Colors.black)),
-            ],
-          ),
         ],
       ),
     );
@@ -412,7 +407,7 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
           checkIn = DateFormat('hh:mm').format(DateTime.now());
           _getLocation();
           _makePostRequest(
-            'http://localhost:8080/api/attendance/check-in',
+            'http://192.168.68.111:8080/api/attendance/check-in',
             {
               "id": widget.employeeId,
               "email": widget.email,
@@ -435,7 +430,7 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
         setState(() {
           checkOut = DateFormat('hh:mm').format(DateTime.now());
           _makePostRequest(
-            'http://localhost:8080/api/attendance/check-out',
+            'http://192.168.68.111:8080/api/attendance/check-out',
             {
               "id": widget.employeeId,
               "email": widget.email,
@@ -450,7 +445,7 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
 
   Widget _buildLocation(bool isWeb) {
     return Text(
-      "Location: $location",
+      "",
       textAlign: TextAlign.center,
       style: TextStyle(
         color: Colors.grey.shade900,
