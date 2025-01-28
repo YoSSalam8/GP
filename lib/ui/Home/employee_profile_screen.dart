@@ -61,7 +61,7 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
   }
 
   Future<void> _fetchEmployeeData() async {
-    final url = 'http://192.168.68.111:8080/api/employees/${widget.employeeId}/${widget.email}';
+    final url = 'http://192.168.1.101:8080/api/employees/${widget.employeeId}/${widget.email}';
     try {
       final response = await http.get(
         Uri.parse(url),
@@ -97,7 +97,7 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
   }
 
   Future<void> fetchProfilePicture() async {
-    final url = 'http://192.168.68.111:8080/api/employees/${widget.employeeId}/${widget.email}/picture';
+    final url = 'http://192.168.1.101:8080/api/employees/${widget.employeeId}/${widget.email}/picture';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -111,7 +111,16 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
       print("Error fetching profile picture: $e");
     }
   }
-
+  Future<void> _refreshData() async {
+    setState(() {
+      isLoading = true; // Show loading indicator while refreshing
+    });
+    await _fetchEmployeeData();
+    await fetchProfilePicture();
+    setState(() {
+      isLoading = false; // Hide loading indicator after refreshing
+    });
+  }
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
@@ -122,6 +131,16 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
     const Color textColor = Color(0xFF2D2D2D); // Dark grey for readability
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text(""),
+        backgroundColor: primaryColor,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _refreshData, // Call refresh method
+          ),
+        ],
+      ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : Container(
@@ -216,7 +235,7 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
               )
                   : const CircleAvatar(
                 radius: 60,
-                backgroundImage: AssetImage("images/logo.png"),
+
               ),
             ),
             const SizedBox(height: 10),

@@ -23,30 +23,24 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
   List<Map<String, dynamic>> departments = [];
 
   final List<Map<String, dynamic>> authorities = [
-    {"id": 1, "name": "EDIT_PERSONAL_DETAILS"},
-    {"id": 2, "name": "EDIT_EMPLOYEE_DETAILS"},
-    {"id": 3, "name": "VIEW_EMPLOYEE_ATTENDANCE"},
-    {"id": 4, "name": "VIEW_PERSONAL_ATTENDANCE"},
-    {"id": 5, "name": "ACCEPT_LEAVE_REQUEST"},
-    {"id": 6, "name": "DENY_LEAVE_REQUEST"},
-    {"id": 7, "name": "APPROVE_TIMESHEET"},
-    {"id": 8, "name": "REJECT_TIMESHEET"},
-    {"id": 9, "name": "ADD_EMPLOYEE"},
-    {"id": 10, "name": "REMOVE_EMPLOYEE"},
-    {"id": 11, "name": "LOCK_EMPLOYEE"},
-    {"id": 12, "name": "UNLOCK_EMPLOYEE"},
-    {"id": 13, "name": "ADD_DEPARTMENT"},
-    {"id": 14, "name": "REMOVE_DEPARTMENT"},
-    {"id": 15, "name": "UPDATE_DEPARTMENT"},
-    {"id": 16, "name": "VIEW_COMPANY_DETAILS"},
-    {"id": 17, "name": "ADD_COUNTRIES"},
-    {"id": 18, "name": "REMOVE_COUNTRIES"},
-    {"id": 19, "name": "ADD_TAX_CODES"},
-    {"id": 20, "name": "REMOVE_TAX_CODES"},
-    {"id": 21, "name": "MANAGE_LEAVE_TYPES"},
-    {"id": 22, "name": "ACCEPT_DENY_LEAVES"},
-    {"id": 23, "name": "VIEW_PAYROLL_DETAILS"},
-    {"id": 24, "name": "EDIT_PAYROLL_DETAILS"},
+    {"id": 17, "name": "ATTENDANCE" ,},
+    {"id": 18, "name": "VIEW_MONTHLY_ATTENDANCE" },
+    {"id": 19, "name": "VIEW_PROFILE" },
+    {"id": 20, "name": "EDIT_PROFILE"},
+    {"id": 21, "name": "ADD_EMPLOYEE"},
+    {"id": 22, "name": "EDIT_EMPLOYEE"},
+    {"id": 23, "name": "EDIT_COMPANY"},
+    {"id": 24, "name": "CREATE_ANNOUNCEMENT"},
+    {"id": 25, "name": "VIEW_ANNOUNCEMENTS"},
+    {"id": 26, "name": "PAYROLL"},
+    {"id": 27, "name": "REQUEST_LEAVE"},
+    {"id": 28, "name": "APPROVE_REJECT_LEAVES"},
+    {"id": 29, "name": "VIEW_LEAVE"},
+    {"id": 30, "name": "VIEW_ORGANIZATION_TREE"},
+    {"id": 31, "name": "CREATE_PROJECT"},
+    {"id": 32, "name": "VIEW_PROJECT"},
+    {"id": 35, "name": "VIEW_CV"},
+    {"id": 37, "name": "ADD_CV"},
   ];
 
   @override
@@ -113,11 +107,12 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
 
   Future<void> _updateCompanyDetails() async {
     final String apiUrl = 'http://localhost:8080/api/companies/${widget.companyId}';
+
     try {
       final body = jsonEncode({
         "name": companyName,
         "creatorEmail": creatorEmail,
-        "emailDomains": emailDomains,
+        "emailDomains": emailDomains, // Ensure this is a list of strings
         "countryTaxCodes": countryTaxCodes.map((tax) => tax["taxCode"]).toList(),
         "workStartTime": workStartTime,
         "workEndTime": workEndTime,
@@ -129,21 +124,35 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
               return {
                 "id": workTitle["id"], // Send `null` if new work title.
                 "name": workTitle["name"],
-                "authorityIds": workTitle["authorities"] ?? [],
+                "authorityIds": workTitle["authorities"].map((authName) {
+                  final authority = authorities.firstWhere(
+                        (a) => a["name"] == authName,
+                    orElse: () => {"id": -1}, // Return a default Map<String, dynamic> with id -1
+                  );
+                  return authority["id"];
+                }).where((id) => id != -1).toList(), // Filter out invalid IDs
+
               };
             }).toList(),
+
           };
         }).toList(),
+
       });
+
+      print("Request Body: $body"); // Debug log
 
       final response = await http.put(
         Uri.parse(apiUrl),
         headers: {
-          'Authorization': 'Bearer ${widget.token}', // Include the token
+          'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
         },
         body: body,
       );
+
+      print("Response Status: ${response.statusCode}");
+      print("Response Body: ${response.body}"); // Debug log
 
       if (response.statusCode == 200) {
         await _fetchCompanyDetails(); // Refresh to get updated data from the backend.
@@ -151,7 +160,9 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
           const SnackBar(content: Text('Company details updated successfully!')),
         );
       } else {
-        throw Exception('Failed to update company details. Error: ${response.body}');
+        // Log and show the error message
+        final errorMessage = jsonDecode(response.body)['message'] ?? 'Unknown error';
+        throw Exception('Failed to update company details: $errorMessage');
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -161,6 +172,137 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
   void _saveChanges() {
     _updateCompanyDetails();
   }
+
+
+
+  void _editAuthorities(Map<String, dynamic> workTitle) {
+    // Get the initially selected authorities
+    List<int> selectedAuthorities = workTitle["authorities"].map<int>((authName) {
+      final authority = authorities.firstWhere(
+            (a) => a["name"] == authName,
+        orElse: () => {"id": -1},
+      );
+      return authority["id"] as int;
+    }).where((id) => id != -1).toList();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Edit Authorities for ${workTitle["name"]}",
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: GridView.builder(
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3, // Number of columns
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                          childAspectRatio: 3,
+                        ),
+                        itemCount: authorities.length,
+                        itemBuilder: (context, index) {
+                          final authority = authorities[index];
+                          final isSelected = selectedAuthorities.contains(authority["id"]);
+                          final isDisabled =
+                              authority["name"] == "ATTENDANCE" || authority["name"] == "VIEW_PROFILE";
+
+                          return GestureDetector(
+                            onTap: isDisabled
+                                ? null
+                                : () {
+                              setModalState(() {
+                                if (isSelected) {
+                                  selectedAuthorities.remove(authority["id"]);
+                                } else {
+                                  selectedAuthorities.add(authority["id"]);
+                                }
+                              });
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? Colors.blue // Selected authority
+                                    : Colors.white, // Deselected authority
+                                border: Border.all(
+                                  color: isSelected
+                                      ? Colors.blue // Border for selected
+                                      : isDisabled
+                                      ? Colors.grey // Disabled border
+                                      : Colors.black, // Default border
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  authority["name"],
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: isSelected
+                                        ? Colors.white // Text color for selected
+                                        : isDisabled
+                                        ? Colors.grey // Disabled text
+                                        : Colors.black, // Default text
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text("Cancel"),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              workTitle["authorities"] = selectedAuthorities.map((id) {
+                                final authority = authorities.firstWhere(
+                                      (a) => a["id"] == id,
+                                  orElse: () => {"name": ""},
+                                );
+                                return authority["name"];
+                              }).toList();
+                            });
+
+                            _updateCompanyDetails();
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text("Save"),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -369,7 +511,6 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
                               setState(() {
                                 department["name"] = newValue;
                               });
-                              // Consider batching updates instead of updating instantly
                               _updateCompanyDetails();
                             }
                           },
@@ -382,45 +523,52 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
                         department["workTitles"].isEmpty
                             ? const Text('No work titles available.')
                             : Column(
-                          children: department["workTitles"]
-                              .map<Widget>(
-                                (workTitle) => ListTile(
-                              title: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: TextFormField(
-                                      initialValue: workTitle["name"],
-                                      decoration: const InputDecoration(labelText: "Work Title"),
-                                      onFieldSubmitted: (newValue) {
-                                        if (newValue.isNotEmpty) {
-                                          setState(() {
-                                            workTitle["name"] = newValue;
-                                          });
-                                          _updateCompanyDetails();
-                                        }
-                                      },
-                                    ),
+                          children: department["workTitles"].map<Widget>(
+                                (workTitle) {
+                              return Card(
+                                margin: const EdgeInsets.symmetric(vertical: 8),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: TextFormField(
+                                              initialValue: workTitle["name"],
+                                              decoration: const InputDecoration(
+                                                  labelText: "Work Title"),
+                                              onFieldSubmitted: (newValue) {
+                                                if (newValue.isNotEmpty) {
+                                                  setState(() {
+                                                    workTitle["name"] = newValue;
+                                                  });
+                                                  _updateCompanyDetails();
+                                                }
+                                              },
+                                            ),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.settings, color: Colors.blue),
+                                            onPressed: () {
+                                              _editAuthorities(workTitle);
+                                            },
+                                          ),
+                                        ],
+
+                                      ),
+                                    ],
                                   ),
-                                  IconButton(
-                                    icon: const Icon(Icons.settings, color: Colors.blue),
-                                    onPressed: () {
-                                      print("Icon button clicked. WorkTitle: ${workTitle["name"]}");
-                                      _showAuthorityDialog(context, workTitle);
-                                    },
-                                  ),
-
-
-
-                                ],
-                              ),
-                            ),
-                          )
-                              .toList(),
+                                ),
+                              );
+                            },
+                          ).toList(),
                         ),
                         const SizedBox(height: 10),
                         TextField(
-                          decoration: const InputDecoration(labelText: "Add Work Title"),
+                          decoration:
+                          const InputDecoration(labelText: "Add Work Title"),
                           onSubmitted: (value) {
                             if (value.isNotEmpty) {
                               setState(() {
@@ -460,140 +608,4 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
   }
 
 
-  void _showAuthorityDialog(BuildContext context, Map<String, dynamic> workTitle) {
-    print("Opening authority dialog for: ${workTitle["name"]}");
-    List<int> selectedAuthorities = List.from(workTitle["authorities"]);
-    List<Map<String, dynamic>> filteredAuthorities = List.from(authorities);
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: StatefulBuilder(
-            builder: (context, setState) {
-              return SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const Text(
-                        "Edit Authorities",
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF133E87),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        decoration: const InputDecoration(
-                          hintText: "Search Authorities",
-                          prefixIcon: Icon(Icons.search),
-                          border: OutlineInputBorder(),
-                        ),
-                        onChanged: (query) {
-                          setState(() {
-                            filteredAuthorities = authorities
-                                .where((auth) => auth["name"]
-                                .toLowerCase()
-                                .contains(query.toLowerCase()))
-                                .toList();
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        "Selected: ${selectedAuthorities.length} / ${authorities.length}",
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 16),
-                      GridView.count(
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                        shrinkWrap: true,
-                        children: filteredAuthorities.map((auth) {
-                          bool isSelected = selectedAuthorities.contains(auth["id"]);
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                if (isSelected) {
-                                  selectedAuthorities.remove(auth["id"]);
-                                } else {
-                                  selectedAuthorities.add(auth["id"]);
-                                }
-                              });
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
-                              decoration: BoxDecoration(
-                                gradient: isSelected
-                                    ? const LinearGradient(
-                                  colors: [Color(0xFF133E87), Color(0xFF608BC1)],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                )
-                                    : const LinearGradient(colors: [Colors.white, Colors.white]),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: isSelected ? Colors.blue : Colors.grey.shade300,
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  auth["name"],
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: isSelected ? Colors.white : Colors.black87,
-                                    fontSize: 12,
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          ElevatedButton.icon(
-                            onPressed: () => Navigator.pop(context),
-                            icon: const Icon(Icons.close, color: Colors.white),
-                            label: const Text("Cancel"),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              setState(() {
-                                workTitle["authorities"] = selectedAuthorities;
-                              });
-                              Navigator.pop(context);
-                            },
-                            icon: const Icon(Icons.check, color: Colors.white),
-                            label: const Text("Save"),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
 }

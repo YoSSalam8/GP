@@ -59,7 +59,7 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
   }
   Future<void> _fetchAttendanceStatus() async {
     final url =
-        'http://192.168.68.111:8080/api/attendance/employee/${widget.employeeId}/${widget.email}/attendance';
+        'http://192.168.1.101:8080/api/attendance/employee/${widget.employeeId}/${widget.email}/attendance';
     try {
       final response = await http.get(
         Uri.parse(url),
@@ -68,6 +68,7 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
           'Content-Type': 'application/json',
         },
       );
+
       if (response.statusCode == 200) {
         List<dynamic> attendanceData = jsonDecode(response.body);
         if (attendanceData.isNotEmpty) {
@@ -77,8 +78,8 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
           DateTime checkInTime = DateTime.parse(latestRecord['checkInTime']);
           DateTime today = DateTime.now();
 
-          // Check if latest check-in is today
           if (isSameDate(checkInTime, today)) {
+            // If there is a check-in record for today, update the state
             setState(() {
               checkIn = DateFormat('hh:mm').format(checkInTime);
               if (latestRecord['checkOutTime'] != null) {
@@ -87,11 +88,6 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
               } else {
                 checkOut = "--/--"; // Pending check-out
               }
-            });
-          } else {
-            setState(() {
-              checkIn = "--/--";
-              checkOut = "--/--";
             });
           }
         }
@@ -102,6 +98,8 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
       print("Error fetching attendance: $e");
     }
   }
+
+
   bool isSameDate(DateTime date1, DateTime date2) {
     return date1.year == date2.year && date1.month == date2.month && date1.day == date2.day;
   }
@@ -407,7 +405,7 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
           checkIn = DateFormat('hh:mm').format(DateTime.now());
           _getLocation();
           _makePostRequest(
-            'http://192.168.68.111:8080/api/attendance/check-in',
+            'http://192.168.1.101:8080/api/attendance/check-in',
             {
               "id": widget.employeeId,
               "email": widget.email,
@@ -430,7 +428,7 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
         setState(() {
           checkOut = DateFormat('hh:mm').format(DateTime.now());
           _makePostRequest(
-            'http://192.168.68.111:8080/api/attendance/check-out',
+            'http://192.168.1.101:8080/api/attendance/check-out',
             {
               "id": widget.employeeId,
               "email": widget.email,

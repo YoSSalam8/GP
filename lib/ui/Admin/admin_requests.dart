@@ -72,6 +72,8 @@ class _AdminRequestsPageState extends State<AdminRequestsPage> {
       "approverEmail": widget.approverEmail,
     };
 
+    print("Approval Payload: $payload"); // Debug log
+
     try {
       final response = await http.put(
         Uri.parse(url),
@@ -81,6 +83,9 @@ class _AdminRequestsPageState extends State<AdminRequestsPage> {
         },
         body: json.encode(payload),
       );
+
+      print("Approval Response Status: ${response.statusCode}");
+      print("Approval Response Body: ${response.body}");
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -101,7 +106,9 @@ class _AdminRequestsPageState extends State<AdminRequestsPage> {
   Future<void> _handleRejection(int index, int requestId) async {
     final url = "http://localhost:8080/api/leave-requests/$requestId/reject";
     final payload = {
-      "remarks": "Leave denied due to project deadlines.",
+      "approverId": int.parse(widget.approverId), // Ensure approverId is sent if required
+      "approverEmail": widget.approverEmail,      // Ensure approverEmail is sent
+      "remarks": "Leave denied due to project deadlines.", // Add rejection reason
     };
 
     try {
@@ -113,6 +120,10 @@ class _AdminRequestsPageState extends State<AdminRequestsPage> {
         },
         body: json.encode(payload),
       );
+
+      // Log the response for debugging
+      print("Rejection Response Status: ${response.statusCode}");
+      print("Rejection Response Body: ${response.body}");
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -131,8 +142,16 @@ class _AdminRequestsPageState extends State<AdminRequestsPage> {
 
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    try {
+      final decodedMessage = json.decode(message);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(decodedMessage["error"] ?? "Unknown error occurred"),
+      ));
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    }
   }
+
 
   @override
   Widget build(BuildContext context) {

@@ -86,7 +86,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     });
 
     final url = Uri.parse(
-        "http://192.168.68.111:8080/api/attendance/employee/${widget.employeeId}/${widget.email}/attendance");
+        "http://192.168.1.101:8080/api/attendance/employee/${widget.employeeId}/${widget.email}/attendance");
 
     try {
       final response = await http.get(

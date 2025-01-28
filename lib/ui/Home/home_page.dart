@@ -239,7 +239,7 @@ import 'package:graduation_project/ui/Home/add_CV.dart';
       }
     }
     Future<void> fetchProfilePicture() async {
-      final url = 'http://192.168.68.111:8080/api/employees/$empId/$email/picture';
+      final url = 'http://192.168.1.101:8080/api/employees/$empId/$email/picture';
       try {
         final response = await http.get(Uri.parse(url));
         if (response.statusCode == 200) {
@@ -273,13 +273,12 @@ import 'package:graduation_project/ui/Home/add_CV.dart';
           leading: Icon(menu["icon"]),
           title: Text(menu["title"]),
           onTap: () {
-            if (currentIndex != index) {
-              setState(() {
-                currentIndex = index;
-              });
-            }
+            setState(() {
+              currentIndex = index;
+            });
             Navigator.pop(context); // Close the drawer
           },
+
         );
       });
     }
@@ -330,7 +329,7 @@ import 'package:graduation_project/ui/Home/add_CV.dart';
 
 
     Future<void> uploadProfilePicture(Uint8List imageData) async {
-      final url = 'http://192.168.68.111:8080/api/employees/$empId/$email/upload-picture';
+      final url = 'http://192.168.1.101:8080/api/employees/$empId/$email/upload-picture';
       final request = http.MultipartRequest('POST', Uri.parse(url))
         ..fields['employeeId'] = empId
         ..files.add(
@@ -474,22 +473,22 @@ import 'package:graduation_project/ui/Home/add_CV.dart';
       return Scaffold(
         appBar: AppBar(
           title: Text(
-            authorityToMenu[
-            orderedAuthorities.where((auth) => userAuthorities.contains(auth)).toList()[currentIndex]
-            ]?["title"] ?? "Home", // Fallback to "Home" if null
+            getPageTitle(currentIndex), // Dynamically fetch the title
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
           backgroundColor: Colors.blue.shade900,
           leading: Builder(
             builder: (BuildContext context) {
               return IconButton(
-                icon: const Icon(Icons.menu), // Hamburger menu icon
+                icon: const Icon(Icons.menu),
                 onPressed: () {
-                  Scaffold.of(context).openDrawer(); // Opens the drawer when the icon is tapped
+                  Scaffold.of(context).openDrawer();
                 },
               );
             },
           ),
         ),
+
 
         // Add the Drawer widget
         drawer: Drawer(
@@ -557,8 +556,9 @@ import 'package:graduation_project/ui/Home/add_CV.dart';
       if (index < filteredAuthorities.length) {
         return authorityToMenu[filteredAuthorities[index]]?["title"] ?? "Home";
       }
-      return "Home"; // Fallback title
+      return "Home"; // Default title if index is out of range
     }
+
 
 
 

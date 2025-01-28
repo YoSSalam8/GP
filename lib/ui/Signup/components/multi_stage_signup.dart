@@ -165,7 +165,7 @@ class _MultiStageSignUpState extends State<MultiStageSignUp> {
 
 
   void sendRequest(BuildContext context, Map<String, dynamic> requestPayload) async {
-    const String url = "http://192.168.68.111:8080/api/companies/create-structure";
+    const String url = "http://192.168.1.101:8080/api/companies/create-structure";
     int companyId ; // Variable to store the company ID
 
 

@@ -89,10 +89,25 @@ class _OrganizationTreeScreenState extends State<OrganizationTreeScreen> {
     }).toList();
   }
 
+  void _refreshData() {
+    setState(() {
+      _organizationTreeFuture = fetchOrganizationTree(widget.companyId, widget.token);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
+      appBar: AppBar(
+        title: const Text(""),
+        backgroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _refreshData, // Refresh data on button press
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Padding(

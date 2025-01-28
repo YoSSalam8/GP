@@ -25,8 +25,14 @@ class _ViewProjectState extends State<ViewProject> {
   final TextEditingController hoursController = TextEditingController();
   bool isBillable = false;
   String employeeJobTitle = "";
+  bool isLoading = false;
+  bool isSubmitted = false;
 
   Future<void> fetchProjects() async {
+    setState(() {
+      isLoading = true; // Show loader while fetching data
+    });
+
     final url = Uri.parse("http://localhost:8080/api/projects/company/${widget.companyId}");
     try {
       final response = await http.get(
@@ -139,6 +145,14 @@ class _ViewProjectState extends State<ViewProject> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Work details submitted successfully!")),
         );
+
+        // Update the project card with the submitted hours
+        setState(() {
+          project["submittedHours"] = workDetails["hoursWorked"].toString(); // Update the project
+          isSubmitted = true;
+          hoursController.text = workDetails["hoursWorked"].toString();
+        });
+
         Navigator.pop(context);
       } else {
         throw Exception(
@@ -248,42 +262,45 @@ class _ViewProjectState extends State<ViewProject> {
                           prefixIcon: const Icon(Icons.timer),
                         ),
                         keyboardType: TextInputType.number,
+                        enabled: !isSubmitted, // Disable the field if already submitted
                       ),
                       const SizedBox(height: 20),
-                      SwitchListTile(
-                        title: const Text(
-                          "Is Billable?",
-                          style: TextStyle(fontSize: 16, color: Colors.black87),
+                      if (!isSubmitted)
+                        SwitchListTile(
+                          title: const Text(
+                            "Is Billable?",
+                            style: TextStyle(fontSize: 16, color: Colors.black87),
+                          ),
+                          value: isBillable,
+                          onChanged: (value) {
+                            setStateModal(() {
+                              isBillable = value;
+                            });
+                          },
+                          activeColor: const Color(0xFF133E87),
                         ),
-                        value: isBillable,
-                        onChanged: (value) {
-                          setStateModal(() {
-                            isBillable = value;
-                          });
-                        },
-                        activeColor: const Color(0xFF133E87),
-                      ),
                       const SizedBox(height: 20),
-                      Center(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF133E87),
-                            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 40),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
+                      if (!isSubmitted)
+                        Center(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF133E87),
+                              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 40),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(15),
+                              ),
                             ),
-                          ),
-                          onPressed: () => submitWorkDetails(project),
-                          child: const Text(
-                            "Submit Work Details",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                            onPressed: () => submitWorkDetails(project),
+                            child: const Text(
+                              "Submit Work Details",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -295,6 +312,10 @@ class _ViewProjectState extends State<ViewProject> {
     );
   }
 
+
+  void _refreshData() {
+    fetchProjects(); // Re-fetch projects when the refresh button is pressed
+  }
   @override
   void initState() {
     super.initState();
@@ -309,12 +330,12 @@ class _ViewProjectState extends State<ViewProject> {
           "View Projects",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: const Color(0xFF133E87),
+        backgroundColor: Colors.white,
         elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: fetchProjects,
+            onPressed: _refreshData, // Call the _refreshData method on press
           ),
         ],
       ),
@@ -343,16 +364,27 @@ class _ViewProjectState extends State<ViewProject> {
                     color: Color(0xFF133E87),
                   ),
                 ),
-                subtitle: Text(
-                  "Start Date: ${project["startDate"]} | End Date: ${project["endDate"]}",
-                  style: const TextStyle(fontSize: 14, color: Colors.black87),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Start Date: ${project["startDate"]} | End Date: ${project["endDate"]}",
+                      style: const TextStyle(fontSize: 14, color: Colors.black87),
+                    ),
+                    if (project["submittedHours"] != null)
+                      Text(
+                        "Hours Worked: ${project["submittedHours"]}",
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.green),
+                      ),
+                  ],
                 ),
                 trailing: const Icon(Icons.arrow_forward_ios, color: Color(0xFF133E87)),
                 onTap: () => showProjectDetailsModal(project),
               ),
             );
           },
-        ),
+        )
+
       ),
     );
   }

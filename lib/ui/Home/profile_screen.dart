@@ -101,18 +101,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'Content-Type': 'application/json',
         },
       );
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+
         setState(() {
+          // Parse departments
           departments = List<Map<String, dynamic>>.from(data['departments'] ?? []);
           if (departments.isNotEmpty) {
             // Auto-select the first department
             final firstDepartment = departments.first;
             selectedDepartment = firstDepartment['name'];
-            departmentController.text = selectedDepartment!;
+            departmentController.text = selectedDepartment ?? ''; // Set the text field value
+
+            // Parse work titles from the first department
             workTitles = List<Map<String, dynamic>>.from(firstDepartment['workTitles'] ?? []);
             if (workTitles.isNotEmpty) {
-              selectedWorkTitle = workTitles.first['name']; // Auto-select the first work title if available
+              // Auto-select the first work title
+              selectedWorkTitle = workTitles.first['name'];
+              workTitleController.text = selectedWorkTitle ?? ''; // Set the text field value
             }
           }
         });
@@ -295,7 +302,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _saveEmployeeDetails() async {
     if (selectedEmployeeId == null) {
-      _showSnackBar("No employee selected for editing.");
+      _showDialog("Error", "No employee selected for editing.");
       return;
     }
 
@@ -326,22 +333,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final response = await http.put(
         Uri.parse(url),
         headers: {
-          "Authorization": "Bearer ${widget.token}", // Include the token
+          "Authorization": "Bearer ${widget.token}",
           "Content-Type": "application/json",
         },
         body: jsonEncode(updatedDetails),
       );
 
       if (response.statusCode == 200) {
-        _showSnackBar("Employee details updated successfully!");
-        _fetchEmployees(); // Refresh employee list
+        // Success dialog
+        _showDialog("Success", "Employee details updated successfully!");
+        _fetchEmployees(); // Refresh the employee list
+      } else if (response.statusCode == 500) {
+        // Show error dialog with response body (if available)
+        final message = jsonDecode(response.body)['message'] ?? "Internal Server Error";
+        _showDialog("Server Error", "Error 500: $message");
       } else {
-        throw Exception('Failed to update employee. Status: ${response.statusCode}');
+        // Generic error dialog for other status codes
+        final message = jsonDecode(response.body)['message'] ?? "Unexpected Error";
+        _showDialog("Error", "Failed to update employee details. Status: ${response.statusCode}\n$message");
       }
     } catch (e) {
-      _showSnackBar("Error updating employee details: $e");
+      // Show dialog for network or other exceptions
+      _showDialog("Error", "An unexpected error occurred: $e");
     }
   }
+
   Widget _buildSectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(top: 16, bottom: 8),
@@ -386,6 +402,83 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
+  Future<void> _refreshData() async {
+    setState(() {
+      isLoading = true; // Show loading indicator during refresh
+    });
+    await Future.wait([
+      _fetchEmployees(),
+      _fetchCompanyDetails(),
+      _fetchSupervisors(),
+    ]);
+    setState(() {
+      isLoading = false; // Hide loading indicator after refresh
+    });
+  }
+  void _showDialog(String title, String content) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  title == "Success" ? Icons.check_circle : Icons.error,
+                  color: title == "Success" ? Colors.green : Colors.red,
+                  size: 60,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: title == "Success" ? Colors.green : Colors.red,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 15),
+                Text(
+                  content,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.black87,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue.shade900,
+                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text(
+                    "OK",
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     double screenWidth = MediaQuery.of(context).size.width;
@@ -393,6 +486,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     double contentWidth = isWeb ? screenWidth * 0.5 : screenWidth * 0.9;
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text(""),
+        backgroundColor: const Color(0xFF133E87),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _refreshData, // Call refresh function
+          ),
+        ],
+      ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -462,33 +565,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     _buildTextField("Address", "Enter address", addressController),
                     _buildDropdown(
                       "Department",
-                      departments.map<String>((dept) => dept["name"]?.toString() ?? "").toList(),
+                      departments.map<String>((dept) => dept["name"] ?? "").toList(),
                       selectedDepartment,
                           (value) {
                         setState(() {
                           selectedDepartment = value;
-                          departmentController.text = value ?? '';
+                          departmentController.text = value ?? ''; // Update the text field value
                           // Update work titles when department changes
                           workTitles = List<Map<String, dynamic>>.from(
-                              departments.firstWhere((dept) => dept["name"] == value)["workTitles"]
-                          );
+                              departments.firstWhere((dept) => dept["name"] == value, orElse: () => {})["workTitles"] ?? []);
                           // Reset work title selection
-                          selectedWorkTitle = null;
+                          selectedWorkTitle = workTitles.isNotEmpty ? workTitles.first['name'] : null;
+                          workTitleController.text = selectedWorkTitle ?? ''; // Update the text field value
                         });
                       },
                     ),
+
+
 
 
                     _buildDropdown(
                       "Work Title",
-                      workTitles.map<String>((title) => title["name"]?.toString() ?? "").toList(),
+                      workTitles.map<String>((title) => title["name"] ?? "").toList(),
                       selectedWorkTitle,
                           (value) {
                         setState(() {
                           selectedWorkTitle = value;
+                          workTitleController.text = value ?? ''; // Update the text field value
                         });
                       },
                     ),
+
+
 
                     _buildDropdown("Job Type", jobTypes, selectedJobType, (value) {
                       setState(() {

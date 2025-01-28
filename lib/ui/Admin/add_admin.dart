@@ -1,6 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:graduation_project/ui/Login/login_page.dart';
+
+
+
 
 class AddAdmin extends StatefulWidget {
   final int companyId; // Receive company ID
@@ -41,7 +45,7 @@ class _AddAdminState extends State<AddAdmin> {
   }
 
   Future<void> _fetchCompanyDetails() async {
-    final url = 'http://localhost:8080/api/companies/${widget.companyId}';
+    final url = 'http://192.168.1.101:8080/api/companies/${widget.companyId}';
 
     try {
       final response = await http.get(Uri.parse(url));
@@ -80,7 +84,7 @@ class _AddAdminState extends State<AddAdmin> {
   }
 
   Future<void> _addEmployee() async {
-    final url = 'http://localhost:8080/api/employees/invite/${widget.companyId}';
+    final url = 'http://192.168.1.101:8080/api/employees/invite/${widget.companyId}';
     final employeeId = int.tryParse(employeeIdController.text);
     final salary = double.tryParse(salaryController.text);
 
@@ -411,8 +415,8 @@ class _AddAdminState extends State<AddAdmin> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   onPressed: () {
-                    Navigator.of(context).pop();
-                    _clearFields();
+                    Navigator.pop(context);
+                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const Login()));
                   },
                   child: const Text("Close", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
