@@ -1,7 +1,9 @@
   import 'package:flutter/material.dart';
+import 'package:graduation_project/ui/Admin/admin_salary.dart';
 import 'package:graduation_project/ui/Admin/create_project.dart';
 import 'package:graduation_project/ui/Home/add_CV.dart';
   import 'package:graduation_project/ui/Home/calendar_screen.dart';
+import 'package:graduation_project/ui/Home/edit_profile_page.dart';
   import 'package:graduation_project/ui/Home/profile_screen.dart';
   import 'package:graduation_project/ui/Home/today_screen.dart';
   import 'package:graduation_project/ui/Home/employee_profile_screen.dart';
@@ -98,8 +100,17 @@ import 'package:graduation_project/ui/Home/add_CV.dart';
         "page": (String empId, String email, String id, String token) =>
             EmployeeProfileScreen(employeeId: empId, email: email , token:token ),
       },
+
       "EDIT_PROFILE": {
         "title": "Edit Profile",
+        "icon": Icons.account_tree,
+        "page": (String empId, String email, String id, String token) =>
+            EditProfilePage(employeeId: empId, employeeEmail: email, companyId: id, token:token),
+      },
+
+
+      "EDIT_EMPLOYEE": {
+        "title": "Edit Employee",
         "icon": Icons.edit,
         "page": (String empId, String email, String id, String token) =>
             ProfileScreen(companyId: id, token:token),
@@ -154,6 +165,14 @@ import 'package:graduation_project/ui/Home/add_CV.dart';
         "page": (String empId, String email, String id, String token) =>
             OrganizationTreeScreen(companyId: id, token:token),
       },
+
+      "PAYROLL": {
+        "title": "Payroll",
+        "icon": Icons.account_tree,
+        "page": (String empId, String email, String id, String token) =>
+            AdminSalaryCalculationPage(employeeId: empId, employeeEmail: email, companyId: id, token:token),
+      },
+
       "CREATE_PROJECT": {
         "title": "Create Project",
         "icon": Icons.create,
@@ -239,7 +258,7 @@ import 'package:graduation_project/ui/Home/add_CV.dart';
       }
     }
     Future<void> fetchProfilePicture() async {
-      final url = 'http://192.168.1.101:8080/api/employees/$empId/$email/picture';
+      final url = 'http://192.168.68.107:8080/api/employees/$empId/$email/picture';
       try {
         final response = await http.get(Uri.parse(url));
         if (response.statusCode == 200) {
@@ -329,7 +348,7 @@ import 'package:graduation_project/ui/Home/add_CV.dart';
 
 
     Future<void> uploadProfilePicture(Uint8List imageData) async {
-      final url = 'http://192.168.1.101:8080/api/employees/$empId/$email/upload-picture';
+      final url = 'http://192.168.68.107:8080/api/employees/$empId/$email/upload-picture';
       final request = http.MultipartRequest('POST', Uri.parse(url))
         ..fields['employeeId'] = empId
         ..files.add(

@@ -59,7 +59,7 @@ class _TodayScreenState extends State<TodayScreen> with SingleTickerProviderStat
   }
   Future<void> _fetchAttendanceStatus() async {
     final url =
-        'http://192.168.1.101:8080/api/attendance/employee/${widget.employeeId}/${widget.email}/attendance';
+        'http://192.168.68.107:8080/api/attendance/employee/${widget.employeeId}/${widget.email}/attendance';
     try {
       final response = await http.get(
         Uri.parse(url),

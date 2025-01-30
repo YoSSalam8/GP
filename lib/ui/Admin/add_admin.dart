@@ -45,7 +45,7 @@ class _AddAdminState extends State<AddAdmin> {
   }
 
   Future<void> _fetchCompanyDetails() async {
-    final url = 'http://192.168.1.101:8080/api/companies/${widget.companyId}';
+    final url = 'http://192.168.68.107:8080/api/companies/${widget.companyId}';
 
     try {
       final response = await http.get(Uri.parse(url));
@@ -84,7 +84,7 @@ class _AddAdminState extends State<AddAdmin> {
   }
 
   Future<void> _addEmployee() async {
-    final url = 'http://192.168.1.101:8080/api/employees/invite/${widget.companyId}';
+    final url = 'http://192.168.68.107:8080/api/employees/invite/${widget.companyId}';
     final employeeId = int.tryParse(employeeIdController.text);
     final salary = double.tryParse(salaryController.text);
 

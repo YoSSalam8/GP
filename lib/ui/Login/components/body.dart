@@ -60,7 +60,7 @@ class _BodyState extends State<Body> with SingleTickerProviderStateMixin {
       return;
     }
 
-    const String url = "http://192.168.1.101:8080/api/auth/login";
+    const String url = "http://192.168.68.107:8080/api/auth/login";
 
     try {
       final response = await http.post(

@@ -61,7 +61,7 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
   }
 
   Future<void> _fetchEmployeeData() async {
-    final url = 'http://192.168.1.101:8080/api/employees/${widget.employeeId}/${widget.email}';
+    final url = 'http://192.168.68.107:8080/api/employees/${widget.employeeId}/${widget.email}';
     try {
       final response = await http.get(
         Uri.parse(url),
@@ -97,7 +97,7 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
   }
 
   Future<void> fetchProfilePicture() async {
-    final url = 'http://192.168.1.101:8080/api/employees/${widget.employeeId}/${widget.email}/picture';
+    final url = 'http://192.168.68.107:8080/api/employees/${widget.employeeId}/${widget.email}/picture';
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {

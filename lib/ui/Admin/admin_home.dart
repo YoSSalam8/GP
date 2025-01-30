@@ -23,7 +23,7 @@ class _AdminHomePageState extends State<AdminHomePage> {
     AdminCheckInOutScreen(),
     AdminTodayAttendancePage(),
     AdminMonthlyAttendancePage(),
-    AdminSalaryCalculationPage(),
+
     AdminAbsenceVacationPage(),
     AdminJobInterviewsPage(),
 
