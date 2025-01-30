@@ -7,12 +7,13 @@ class EmployeeProfileScreen extends StatefulWidget {
   final String employeeId;
   final String email;
   final String token;
+  final String companyId;
 
   const EmployeeProfileScreen({
     super.key,
     required this.employeeId,
     required this.email,
-    required this.token,
+    required this.token, required this.companyId,
   });
 
   @override
@@ -36,6 +37,7 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
   bool overtimeAllowed = false;
   String workScheduleType = '';
   Uint8List? profilePicture; // Add variable for profile picture
+  List<String> supervisedEmployees = []; // Stores supervised employees' emails
 
   bool isLoading = true; // Track loading state
 
@@ -52,6 +54,7 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
     // Fetch employee data
     _fetchEmployeeData();
     fetchProfilePicture(); // Fetch profile picture
+    _fetchSupervisedEmployees();
   }
 
   @override
@@ -93,6 +96,51 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
+    }
+  }
+
+  Future<void> _fetchSupervisedEmployees() async {
+    final url = 'http://localhost:8080/api/employees/company/${widget.companyId}/employees';
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Authorization': 'Bearer ${widget.token}',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        List<dynamic> employees = jsonDecode(response.body);
+        List<String> supervisedEmails = [];
+
+        for (var employee in employees) {
+          String employeeId = employee['id'].toString();
+          String employeeEmail = employee['email'];
+
+          final detailsResponse = await http.get(
+            Uri.parse('http://localhost:8080/api/employees/$employeeId/$employeeEmail'),
+            headers: {
+              'Authorization': 'Bearer ${widget.token}',
+              'Content-Type': 'application/json',
+            },
+          );
+
+          if (detailsResponse.statusCode == 200) {
+            final employeeDetails = jsonDecode(detailsResponse.body);
+            if (employeeDetails['supervisorId'] != null &&
+                employeeDetails['supervisorId'].toString() == widget.employeeId) {
+              supervisedEmails.add(employeeDetails['email']);
+            }
+          }
+        }
+
+        setState(() {
+          supervisedEmployees = supervisedEmails;
+        });
+      }
+    } catch (e) {
+      print("Error fetching supervised employees: $e");
     }
   }
 
@@ -193,12 +241,19 @@ class _EmployeeProfileScreenState extends State<EmployeeProfileScreen> with Tick
                   ),
                 ),
               ),
+              const SizedBox(height: 20),
+              _buildCreativeCardSection(title: "Supervised Employees", content: Column(
+                children: supervisedEmployees.isNotEmpty
+                    ? supervisedEmployees.map((email) => _buildIconRow(Icons.supervisor_account, "Email:", email, Colors.black)).toList()
+                    : [const Center(child: Text("No supervised employees."))],
+              )),
             ],
           ),
         ),
       ),
     );
   }
+
 
   Widget _buildAnimatedProfileHeader(Color accentColor, Color primaryColor) {
     return FadeTransition(

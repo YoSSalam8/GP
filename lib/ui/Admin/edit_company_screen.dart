@@ -41,6 +41,9 @@ class _EditCompanyScreenState extends State<EditCompanyScreen> {
     {"id": 32, "name": "VIEW_PROJECT"},
     {"id": 35, "name": "VIEW_CV"},
     {"id": 37, "name": "ADD_CV"},
+    {"id": 38, "name": "PROJECTS"},
+
+
   ];
 
   @override

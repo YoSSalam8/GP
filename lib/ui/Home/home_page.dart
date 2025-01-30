@@ -5,6 +5,7 @@ import 'package:graduation_project/ui/Home/add_CV.dart';
   import 'package:graduation_project/ui/Home/calendar_screen.dart';
 import 'package:graduation_project/ui/Home/edit_profile_page.dart';
   import 'package:graduation_project/ui/Home/profile_screen.dart';
+import 'package:graduation_project/ui/Home/projects.dart';
   import 'package:graduation_project/ui/Home/today_screen.dart';
   import 'package:graduation_project/ui/Home/employee_profile_screen.dart';
   import 'package:graduation_project/ui/Home/vacation_request_screen.dart';
@@ -76,6 +77,7 @@ import 'package:graduation_project/ui/Home/edit_profile_page.dart';
       "VIEW_ORGANIZATION_TREE",
       "CREATE_PROJECT",
       "VIEW_PROJECT",
+      "PROJECTS",
       "VIEW_CV",
       "VIEW_CV_SUMMARY",
       "ADD_CV",
@@ -98,7 +100,7 @@ import 'package:graduation_project/ui/Home/edit_profile_page.dart';
         "title": "Employee Details",
         "icon": Icons.person,
         "page": (String empId, String email, String id, String token) =>
-            EmployeeProfileScreen(employeeId: empId, email: email , token:token ),
+            EmployeeProfileScreen(employeeId: empId, email: email ,  companyId:id, token:token ),
       },
 
       "EDIT_PROFILE": {
@@ -187,6 +189,12 @@ import 'package:graduation_project/ui/Home/edit_profile_page.dart';
             ViewProject(employeeId: empId, employeeEmail: email, companyId: id, token:token),
       },
 
+      "PROJECTS":{
+        "title": "Projects",
+        "icon": Icons.visibility,
+        "page": (String empId, String email, String id, String token) =>
+            ProjectsPage( companyId: id, token:token),
+      },
       "VIEW_CV":{
         "title": "View CVs",
         "icon": Icons.visibility,
